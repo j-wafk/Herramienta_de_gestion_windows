@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>(function(){var t=localStorage.getItem('userTheme')||'light';var l=localStorage.getItem('userLang')||'es';document.documentElement.setAttribute('data-theme',t);document.documentElement.lang=l;})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar sesión — Control Remoto para Windows</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vista_general.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}">
+    <style>
+        html, body { height: 100%; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+        .login-wrapper { display: flex; flex-direction: column; height: 100vh; }
+
+        .login-body {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f3f3f3;
+        }
+
+        .login-card {
+            background: #fff;
+            border: 1px solid #d8d8d8;
+            border-radius: 10px;
+            padding: 40px 44px 36px;
+            width: 380px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+        }
+
+        .login-logo {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .login-logo svg { color: #005FD2; }
+
+        .login-card h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2328;
+            margin: 0 0 6px;
+            text-align: center;
+        }
+
+        .login-subtitle {
+            font-size: 13px;
+            color: #6b7280;
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .login-field { margin-bottom: 18px; }
+
+        .login-field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #31343a;
+            margin-bottom: 6px;
+        }
+
+        .login-field input {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #c8c8c8;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: inherit;
+            background: #fafafa;
+            color: #1f2328;
+            transition: border-color 0.15s;
+            box-sizing: border-box;
+        }
+
+        .login-field input:focus {
+            outline: none;
+            border-color: #005FD2;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(0,95,210,0.1);
+        }
+
+        .login-error {
+            background: #fff0f0;
+            border: 1px solid #fca5a5;
+            color: #b91c1c;
+            border-radius: 5px;
+            padding: 10px 14px;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 11px;
+            background: #005FD2;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s;
+            margin-top: 6px;
+        }
+        .login-btn:hover { background: #0A67DC; }
+        .login-btn:active { background: #0052b8; }
+    </style>
+</head>
+<body>
+<div class="login-wrapper">
+
+    <header class="vg-header">
+        <div class="header-left">
+            <span class="title">Control Remoto para Windows</span>
+        </div>
+    </header>
+
+    <div class="login-body">
+        <div class="login-card">
+            <div class="login-logo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+            </div>
+            <h2 data-i18n="login.title">Iniciar sesión</h2>
+            <p class="login-subtitle" data-i18n="login.subtitle">Accede con tus credenciales de administrador</p>
+
+            {% if error %}
+            <div class="login-error">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('auth.login') }}{% if request.args.get('next') %}?next={{ request.args.get('next') | urlencode }}{% endif %}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="login-field">
+                    <label for="username" data-i18n="login.username">Usuario</label>
+                    <input type="text" id="username" name="username"
+                           autocomplete="username" autofocus required>
+                </div>
+                <div class="login-field">
+                    <label for="password" data-i18n="login.password">Contraseña</label>
+                    <input type="password" id="password" name="password"
+                           autocomplete="current-password" required>
+                </div>
+                <button type="submit" class="login-btn" data-i18n="login.button">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+</div>
+<script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+</body>
+</html>

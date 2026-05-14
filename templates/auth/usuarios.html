@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="{{ current_user.language or 'es' }}" data-theme="{{ current_user.theme or 'light' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Control Remoto para Windows - Gestión de Usuarios</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vista_general.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile_modal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}">
+    <style>
+        /* ===== USUARIOS PAGE STYLES ===== */
+        .usr-section { background: #fff; border: 1px solid #d6d6d6; border-radius: 8px; overflow: hidden; }
+        .usr-section-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 18px; border-bottom: 1px solid #e8e8e8;
+            background: #fafafa;
+        }
+        .usr-section-title { font-size: 14px; font-weight: 600; color: #2f3136; display: flex; align-items: center; gap: 8px; }
+
+        .usr-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .usr-table thead th {
+            padding: 10px 16px; text-align: left; font-weight: 600; font-size: 12px;
+            color: #53565c; border-bottom: 1px solid #e8e8e8; background: #fafafa;
+        }
+        .usr-table tbody tr { transition: background 0.1s; }
+        .usr-table tbody tr td { padding: 11px 16px; border-bottom: 1px solid #f0f0f0; color: #35383d; }
+        .usr-table tbody tr:last-child td { border-bottom: none; }
+        .usr-table tbody tr:hover td { background: #f8f8f8; }
+
+        .usr-role-badge {
+            display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600;
+        }
+        .usr-role-badge.superadmin { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .usr-role-badge.admin      { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .usr-role-badge.operador   { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+        .usr-role-badge.solo_lectura { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+
+        .usr-status-dot {
+            display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px;
+        }
+        .usr-status-dot.active   { background: #2EA043; }
+        .usr-status-dot.inactive { background: #9ca3af; }
+
+        .usr-action-btn {
+            padding: 4px 12px; border-radius: 5px; border: 1px solid; font-size: 12px;
+            font-weight: 500; cursor: pointer; font-family: inherit; transition: background 0.12s;
+        }
+        .usr-action-btn.edit   { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; margin-right: 4px; }
+        .usr-action-btn.edit:hover { background: #dbeafe; }
+        .usr-action-btn.delete { background: #fff0f0; color: #dc2626; border-color: #fca5a5; }
+        .usr-action-btn.delete:hover { background: #fee2e2; }
+        .usr-action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .usr-add-btn {
+            display: flex; align-items: center; gap: 6px; padding: 7px 16px;
+            background: #005FD2; color: #fff; border: none; border-radius: 5px;
+            font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.12s;
+        }
+        .usr-add-btn:hover { background: #0A67DC; }
+
+        /* Modal */
+        .usr-modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.45); z-index: 1000; align-items: center; justify-content: center;
+        }
+        .usr-modal-overlay.open { display: flex; }
+        .usr-modal-box {
+            background: #fff; border-radius: 10px; width: 420px; max-width: 94%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        }
+        .usr-modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px; border-bottom: 1px solid #e5e7eb;
+            font-weight: 600; font-size: 15px; color: #1f2937;
+        }
+        .usr-modal-close {
+            background: none; border: none; font-size: 20px; cursor: pointer;
+            color: #6b7280; padding: 2px 6px; line-height: 1;
+        }
+        .usr-modal-close:hover { color: #374151; }
+        .usr-modal-body { padding: 20px; }
+        .usr-modal-footer { padding: 12px 20px 16px; display: flex; justify-content: flex-end; gap: 8px; }
+
+        .usr-field { margin-bottom: 16px; }
+        .usr-field label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+        .usr-field input, .usr-field select {
+            width: 100%; padding: 8px 11px; border: 1px solid #d1d5db; border-radius: 5px;
+            font-size: 13px; font-family: inherit; background: #fafafa; color: #374151;
+            box-sizing: border-box;
+        }
+        .usr-field input:focus, .usr-field select:focus { outline: none; border-color: #005FD2; }
+        .usr-field .usr-hint { font-size: 11px; color: #9ca3af; margin-top: 3px; }
+
+        .usr-save-btn {
+            padding: 8px 20px; background: #005FD2; color: #fff; border: none;
+            border-radius: 5px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+        }
+        .usr-save-btn:hover { background: #0A67DC; }
+        .usr-cancel-btn {
+            padding: 8px 16px; background: #f3f4f6; color: #374151; border: 1px solid #d1d5db;
+            border-radius: 5px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit;
+        }
+        .usr-cancel-btn:hover { background: #e5e7eb; }
+
+        .usr-msg { padding: 10px 14px; border-radius: 5px; font-size: 13px; margin-bottom: 14px; }
+        .usr-msg.error   { background: #fff0f0; color: #b91c1c; border: 1px solid #fca5a5; }
+        .usr-msg.success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+    </style>
+</head>
+<body data-user-role="{{ current_user.role }}">
+<div class="vg-wrapper">
+
+    <!-- HEADER -->
+    <header class="vg-header">
+        <div class="header-left">
+            <button class="hamburger" id="sidebarToggle" title="Mostrar/ocultar menú">
+                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            </button>
+            <span class="title">Control Remoto para Windows - Gestión de Usuarios</span>
+        </div>
+        <div class="header-right">
+            <div id="machine-selector-host"></div>
+            <div class="user-info-header">
+                <button class="user-profile-trigger" onclick="openProfileModal()" title="Editar perfil">
+                    <span class="hdr-avatar" id="hdrAvatar" data-color="{{ current_user.avatar_color or '#0A67DC' }}">{{ (current_user.full_name or current_user.username)[:1].upper() }}</span>
+                    <span id="hdrUsername">{{ current_user.full_name or current_user.username }}</span>
+                    <span class="user-role-tag">{{ current_user.role }}</span>
+                </button>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn" data-i18n="header.logout">Cerrar sesión</a>
+            </div>
+            <div class="conn-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="#38B000" stroke="#38B000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="connDotSvg"><circle cx="12" cy="12" r="10"/></svg>
+                <span id="connLabel" data-i18n="header.connected">CONECTADO</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="vg-body">
+
+        <!-- SIDEBAR -->
+        <nav class="vg-sidebar" id="sidebar">
+            <ul class="nav-list">
+                <li><a href="{{ url_for('index') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    <span class="nav-label" data-i18n="nav.overview">Vista General</span>
+                </a></li>
+                <li><a href="{{ url_for('rendimiento_page') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    <span class="nav-label" data-i18n="nav.performance">Rendimiento</span>
+                </a></li>
+                <li><a href="{{ url_for('hardware_page') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                    <span class="nav-label" data-i18n="nav.hardware">Hardware</span>
+                </a></li>
+<li class="active nav-bottom"><a href="{{ url_for('auth.usuarios_page') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span class="nav-label" data-i18n="nav.users">Usuarios y Permisos</span>
+                </a></li>
+                <li><a href="{{ url_for('particiones_page') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></svg>
+                    <span class="nav-label" data-i18n="nav.partitions">Particiones de Disco</span>
+                </a></li>
+                <li><a href="{{ url_for('red_page') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg>
+                    <span class="nav-label" data-i18n="nav.network">Configuración de Red</span>
+                </a></li>
+                <li class="nav-bottom"><a href="{{ url_for('auth.registros_page') }}"><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg><span class="nav-label" data-i18n="nav.logs">Registros del Sistema</span></a></li>
+<li><a href="{{ url_for('backup_page') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    <span class="nav-label" data-i18n="nav.backup">Copias de Seguridad</span>
+                </a></li>
+                <li><a href="{{ url_for('monitorizacion_page') }}"><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg><span class="nav-label" data-i18n="nav.monitoring">Monitorización</span></a></li>
+</ul>
+
+            <div class="sidebar-machine">
+                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="machine-icon-svg"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                <div class="machine-details">
+                    <div class="machine-name"><span data-i18n="sidebar.device">Equipo:</span> <span id="sidebarHostname">Cargando...</span></div>
+                    <div id="sidebarOS">-</div>
+                    <div id="sidebarVersion">-</div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- MAIN CONTENT -->
+        <main class="vg-main">
+            <div class="page-title" data-i18n="page.users">Gestión de Usuarios</div>
+
+            <div id="usrMsg" style="display:none"></div>
+
+            <div class="usr-section">
+                <div class="usr-section-header">
+                    <div class="usr-section-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Usuarios del sistema
+                    </div>
+                    <input type="search" id="usrSearchInput"
+                           placeholder="Buscar por usuario, nombre o rol…"
+                           style="margin-left:auto;margin-right:12px;padding:7px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;min-width:260px;outline:none"
+                           autocomplete="off">
+                    {% if current_user.role == 'superadmin' %}
+                    <button class="usr-add-btn" id="btnNuevoUsuario">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                        Nuevo usuario
+                    </button>
+                    {% endif %}
+                </div>
+                <table class="usr-table">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Email</th>
+                            <th>Rol</th>
+                            <th>Estado</th>
+                            <th>Creado</th>
+                            <th>Último acceso</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usrTableBody">
+                        {% for u in users %}
+                        {% set can_edit = current_user.role == 'superadmin' or u.role != 'superadmin' or u.id == current_user.id %}
+                        <tr data-id="{{ u.id }}"
+                            data-username="{{ u.username }}"
+                            data-role="{{ u.role }}"
+                            data-active="{{ '1' if u.is_active else '0' }}"
+                            data-fullname="{{ u.full_name or '' }}"
+                            data-email="{{ u.email or '' }}">
+                            <td><strong>{{ u.username }}</strong>{% if u.id == current_user.id %} <span style="font-size:11px;color:#6b7280">(tú)</span>{% endif %}{% if u.full_name %}<br><span style="font-size:11px;color:#6b7280">{{ u.full_name }}</span>{% endif %}</td>
+                            <td>
+                                {% if u.email %}
+                                <span title="Email oculto por privacidad. Pulsa Editar para verlo."
+                                      style="font-family:monospace;letter-spacing:2px;color:#6b7280;font-size:13px">••••••••@••••.•••</span>
+                                {% else %}
+                                <span style="color:#9ca3af">—</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="usr-role-badge {{ u.role }}">{{ u.role }}</span></td>
+                            <td>
+                                <span class="usr-status-dot {{ 'active' if u.is_active else 'inactive' }}"></span>
+                                {{ 'Activo' if u.is_active else 'Inactivo' }}
+                            </td>
+                            <td>{{ u.created_at.strftime('%d/%m/%Y') if u.created_at else '—' }}</td>
+                            <td>{{ u.last_login.strftime('%d/%m/%Y %H:%M') if u.last_login else 'Nunca' }}</td>
+                            <td>
+                                {% if can_edit %}
+                                <button class="usr-action-btn edit" data-action="edit" data-id="{{ u.id }}">Editar</button>
+                                {% endif %}
+                                {% if current_user.role == 'superadmin' %}
+                                <button class="usr-action-btn delete" data-action="delete" data-id="{{ u.id }}"
+                                    {% if u.id == current_user.id %}disabled{% endif %}>Eliminar</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div id="usrNoResults" style="display:none;padding:24px;text-align:center;color:#6b7280;font-size:13px">
+                    Ningún usuario coincide con la búsqueda.
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="vg-footer">
+        <span id="footerTime">—</span>
+    </footer>
+</div>
+
+<!-- MODAL CREAR / EDITAR USUARIO -->
+<div class="usr-modal-overlay" id="usrModal">
+    <div class="usr-modal-box">
+        <div class="usr-modal-header">
+            <span id="usrModalTitle">Nuevo usuario</span>
+            <button class="usr-modal-close" id="usrModalClose">✕</button>
+        </div>
+        <div class="usr-modal-body">
+            <div id="usrModalMsg" style="display:none"></div>
+            <input type="hidden" id="editUserId" value="">
+            <div class="usr-field">
+                <label for="fieldUsername">Nombre de usuario</label>
+                <input type="text" id="fieldUsername" placeholder="ej. jlopez" autocomplete="off">
+            </div>
+            <div class="usr-field">
+                <label for="fieldFullName">Nombre completo <span class="usr-hint">(opcional)</span></label>
+                <input type="text" id="fieldFullName" placeholder="ej. Juana López" maxlength="120" autocomplete="off">
+            </div>
+            <div class="usr-field">
+                <label for="fieldEmail">Email <span class="usr-hint">(recibirá notificaciones)</span></label>
+                <input type="email" id="fieldEmail" placeholder="usuario@empresa.com" autocomplete="off">
+            </div>
+            <div class="usr-field">
+                <label for="fieldPassword">Contraseña <span id="pwdHint" class="usr-hint">(dejar vacío para no cambiar)</span></label>
+                <input type="password" id="fieldPassword" autocomplete="new-password">
+            </div>
+            <div class="usr-field">
+                <label for="fieldRole">Rol</label>
+                <select id="fieldRole">
+                    <option value="solo_lectura">Solo lectura</option>
+                    <option value="operador">Operador</option>
+                    <option value="admin">Admin de infraestructura</option>
+                    <option value="superadmin">Superadmin</option>
+                </select>
+            </div>
+            <div class="usr-field" id="activeField" style="display:none">
+                <label>
+                    <input type="checkbox" id="fieldActive" style="width:auto;margin-right:6px">
+                    Usuario activo
+                </label>
+            </div>
+        </div>
+        <div class="usr-modal-footer">
+            <button class="usr-cancel-btn" id="usrModalCancel">Cancelar</button>
+            <button class="usr-save-btn" id="usrModalSave">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+<script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+<script src="{{ url_for('static', filename='js/machine_selector.js') }}?v=13"></script>
+<script src="{{ url_for('static', filename='js/sidebar_info.js') }}"></script>
+<script>
+// ── Footer clock ─────────────────────────────────────────────────────────────
+function updateClock() {
+    const el = document.getElementById('footerTime');
+    if (el) el.textContent = 'Última actualización: ' + new Date().toLocaleString('es-ES');
+}
+updateClock();
+
+// ── Sidebar toggle + persistencia (mismo patrón que el resto de páginas) ────
+(function () {
+    const sidebar = document.getElementById('sidebar');
+    if (localStorage.getItem('sidebarCollapsed') === 'true') sidebar?.classList.add('collapsed');
+    document.getElementById('sidebarToggle')?.addEventListener('click', () => {
+        sidebar?.classList.toggle('collapsed');
+        localStorage.setItem('sidebarCollapsed', sidebar?.classList.contains('collapsed') ? 'true' : 'false');
+    });
+})();
+
+// ── Message helper ────────────────────────────────────────────────────────────
+function showMsg(containerId, text, type) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.className = 'usr-msg ' + type;
+    el.textContent = text;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+// ── Modal helpers ─────────────────────────────────────────────────────────────
+const modal = document.getElementById('usrModal');
+document.getElementById('usrModalClose')?.addEventListener('click', closeModal);
+document.getElementById('usrModalCancel')?.addEventListener('click', closeModal);
+modal?.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+function closeModal() {
+    modal.classList.remove('open');
+    document.getElementById('usrModalMsg').style.display = 'none';
+}
+
+function openCreateModal() {
+    document.getElementById('editUserId').value = '';
+    document.getElementById('usrModalTitle').textContent = 'Nuevo usuario';
+    document.getElementById('fieldUsername').value = '';
+    document.getElementById('fieldUsername').disabled = false;
+    document.getElementById('fieldFullName').value = '';
+    document.getElementById('fieldEmail').value = '';
+    document.getElementById('fieldPassword').value = '';
+    document.getElementById('pwdHint').style.display = 'none';
+    document.getElementById('fieldRole').value = 'solo_lectura';
+    document.getElementById('fieldRole').disabled = false;
+    document.getElementById('activeField').style.display = 'none';
+    document.getElementById('usrModalMsg').style.display = 'none';
+    modal.classList.add('open');
+    document.getElementById('fieldUsername').focus();
+}
+
+function openEditModal(id, username, role, isActive, fullName, email) {
+    const myRole = document.body.dataset.userRole;
+    const isAdminOnly = (myRole === 'admin');
+
+    document.getElementById('editUserId').value = id;
+    document.getElementById('usrModalTitle').textContent = 'Editar usuario';
+    document.getElementById('fieldUsername').value = username;
+    document.getElementById('fieldUsername').disabled = false;
+    document.getElementById('fieldFullName').value = fullName || '';
+    document.getElementById('fieldEmail').value    = email    || '';
+    document.getElementById('fieldPassword').value = '';
+    document.getElementById('pwdHint').style.display = 'inline';
+    document.getElementById('fieldRole').value = role;
+    document.getElementById('fieldRole').disabled = isAdminOnly;
+    document.getElementById('fieldActive').checked = isActive;
+    document.getElementById('activeField').style.display = 'block';
+    document.getElementById('usrModalMsg').style.display = 'none';
+    modal.classList.add('open');
+}
+
+document.getElementById('btnNuevoUsuario')?.addEventListener('click', openCreateModal);
+
+// ── Save ─────────────────────────────────────────────────────────────────────
+document.getElementById('usrModalSave')?.addEventListener('click', async () => {
+    const id        = document.getElementById('editUserId').value;
+    const username  = document.getElementById('fieldUsername').value.trim();
+    const fullName  = document.getElementById('fieldFullName').value.trim();
+    const email     = document.getElementById('fieldEmail').value.trim();
+    const password  = document.getElementById('fieldPassword').value.trim();
+    const role      = document.getElementById('fieldRole').value;
+    const isActive  = document.getElementById('fieldActive').checked;
+    const isEdit    = !!id;
+
+    const msgEl = document.getElementById('usrModalMsg');
+    msgEl.style.display = 'none';
+
+    if (!isEdit && (!username || !password)) {
+        msgEl.className = 'usr-msg error';
+        msgEl.textContent = 'Usuario y contraseña son obligatorios';
+        msgEl.style.display = 'block';
+        return;
+    }
+
+    const myRole = document.body.dataset.userRole;
+    const isAdminOnly = (myRole === 'admin');
+
+    const url    = isEdit ? `/auth/api/usuarios/${id}` : '/auth/api/usuarios';
+    const method = isEdit ? 'PUT' : 'POST';
+    const body   = isEdit
+        ? {
+            username,
+            full_name: fullName,
+            email,
+            is_active: isActive,
+            ...(password ? { password } : {}),
+            // El admin no envía role (no tiene permiso); superadmin sí
+            ...(isAdminOnly ? {} : { role }),
+          }
+        : { username, password, role, email, full_name: fullName };
+
+    try {
+        const r = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        const data = await r.json();
+        if (!r.ok) {
+            msgEl.className = 'usr-msg error';
+            msgEl.textContent = data.error || 'Error al guardar';
+            msgEl.style.display = 'block';
+            return;
+        }
+        closeModal();
+        showMsg('usrMsg', isEdit ? 'Usuario actualizado correctamente.' : 'Usuario creado correctamente.', 'success');
+        setTimeout(() => location.reload(), 1200);
+    } catch {
+        msgEl.className = 'usr-msg error';
+        msgEl.textContent = 'Error de conexión';
+        msgEl.style.display = 'block';
+    }
+});
+
+// ── Delete ────────────────────────────────────────────────────────────────────
+async function deleteUser(id, username) {
+    if (!confirm(`¿Eliminar el usuario "${username}"? Esta acción no se puede deshacer.`)) return;
+    try {
+        const r = await fetch(`/auth/api/usuarios/${id}`, { method: 'DELETE' });
+        const data = await r.json();
+        if (!r.ok) { showMsg('usrMsg', data.error || 'Error al eliminar', 'error'); return; }
+        showMsg('usrMsg', 'Usuario eliminado.', 'success');
+        setTimeout(() => location.reload(), 1000);
+    } catch {
+        showMsg('usrMsg', 'Error de conexión', 'error');
+    }
+}
+
+// ── Delegated click handler para Editar/Eliminar ─────────────────────────────
+// Evita el lío de comillas con onclick inline (especialmente cuando los datos
+// contienen apóstrofes, comillas o se usa |tojson) — lee data-* de la fila.
+document.getElementById('usrTableBody')?.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button[data-action]');
+    if (!btn) return;
+    const tr = btn.closest('tr');
+    if (!tr) return;
+
+    const id       = parseInt(tr.dataset.id, 10);
+    const username = tr.dataset.username || '';
+    const role     = tr.dataset.role || 'solo_lectura';
+    const active   = tr.dataset.active === '1';
+    const fullName = tr.dataset.fullname || '';
+    const email    = tr.dataset.email || '';
+
+    if (btn.dataset.action === 'edit') {
+        openEditModal(id, username, role, active, fullName, email);
+    } else if (btn.dataset.action === 'delete') {
+        deleteUser(id, username);
+    }
+});
+
+// ── Buscador en vivo ─────────────────────────────────────────────────────────
+// Filtra por usuario, nombre completo y rol. Email queda oculto en la tabla
+// por privacidad, por eso no es campo de búsqueda — el admin lo ve al editar.
+const usrSearch = document.getElementById('usrSearchInput');
+function filterUsers() {
+    const q = (usrSearch?.value || '').trim().toLowerCase();
+    const rows = document.querySelectorAll('#usrTableBody tr');
+    let visible = 0;
+    rows.forEach(tr => {
+        if (!q) {
+            tr.style.display = '';
+            visible++;
+            return;
+        }
+        const hay = [
+            tr.dataset.username,
+            tr.dataset.fullname,
+            tr.dataset.role,
+        ].filter(Boolean).join(' ').toLowerCase();
+        const match = hay.includes(q);
+        tr.style.display = match ? '' : 'none';
+        if (match) visible++;
+    });
+    document.getElementById('usrNoResults').style.display =
+        (visible === 0 && rows.length > 0) ? 'block' : 'none';
+}
+usrSearch?.addEventListener('input', filterUsers);
+</script>
+<script src="{{ url_for('static', filename='js/profile_modal.js') }}"></script>
+<script src="{{ url_for('static', filename='js/csrf.js') }}"></script>
+</body>
+</html>

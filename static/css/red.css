@@ -1,0 +1,294 @@
+/* red.css — content styles only; layout from vista_general.css */
+
+/* ===== SUMMARY CARDS ===== */
+.rd-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.rd-summary-card {
+    background: #fff;
+    border: 1px solid #e2e2e2;
+    border-radius: 10px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.rd-icon-wrap {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.rd-icon-wrap.green  { background: #ecfdf5; }
+.rd-icon-wrap.blue   { background: #eff6ff; }
+.rd-icon-wrap.purple { background: #f5f3ff; }
+.rd-icon-wrap.teal   { background: #f0fdfa; }
+
+.rd-card-body    { min-width: 0; }
+.rd-card-label   { font-size: 12px; color: #6b7280; margin-bottom: 2px; }
+.rd-card-value   { font-size: 22px; font-weight: 700; line-height: 1.2; }
+.rd-card-value.green  { color: #2EA043; }
+.rd-card-value.blue   { color: #0A67DC; }
+.rd-card-value.purple { color: #7C3AED; }
+.rd-card-value.teal   { color: #0d9488; }
+.rd-card-sub     { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+
+/* ===== GRID LAYOUTS ===== */
+.rd-grid-main   { display: grid; grid-template-columns: 2fr 1.1fr; gap: 16px; margin-bottom: 16px; }
+.rd-grid-mid    { display: grid; grid-template-columns: 1fr 1fr;   gap: 16px; margin-bottom: 16px; }
+.rd-grid-bottom { display: grid; grid-template-columns: 1fr 1fr;   gap: 16px; }
+
+/* ===== ADAPTERS TABLE ===== */
+.rd-adapter-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rd-adapter-table thead th {
+    padding: 9px 14px;
+    text-align: left;
+    font-weight: 600;
+    color: #53565c;
+    border-bottom: 1px solid #e8e8e8;
+    background: #fafafa;
+    font-size: 12px;
+}
+.rd-adapter-table tbody tr { cursor: pointer; }
+.rd-adapter-table tbody tr td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0f0f0;
+    border-left: 3px solid transparent;
+    color: #35383d;
+    transition: background 0.12s;
+}
+.rd-adapter-table tbody tr:last-child td { border-bottom: none; }
+.rd-adapter-table tbody tr:hover td     { background: #f4f7fb; }
+.rd-adapter-table tbody tr.selected td  { background: #eff6ff; }
+.rd-adapter-table tbody tr.selected td:first-child {
+    border-left-color: #0A67DC;
+    padding-left: 11px;
+}
+
+.rd-status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+.rd-status-dot.green  { background: #2EA043; }
+.rd-status-dot.yellow { background: #f59e0b; }
+.rd-status-dot.red    { background: #dc2626; }
+.rd-status-dot.gray   { background: #9ca3af; }
+
+.rd-adapter-type { color: #6b7280; font-size: 12px; }
+.rd-more-link    { display: block; padding: 8px 14px; font-size: 12px; color: #0A67DC; text-decoration: none; }
+.rd-more-link:hover { text-decoration: underline; }
+.rd-empty { padding: 14px; color: #6b7280; font-size: 13px; }
+
+/* ===== INFO TABLE (details panel) ===== */
+.rd-info-table { width: 100%; border-collapse: collapse; }
+.rd-info-table tr td { padding: 6px 0; font-size: 13px; vertical-align: top; }
+.rd-info-key {
+    color: #53565c;
+    width: 145px;
+    padding-left: 30px;
+    padding-right: 10px;
+    white-space: nowrap;
+}
+.rd-info-val { font-weight: 500; color: #35383d; }
+
+/* ===== STATS PANEL ===== */
+.rd-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    background: transparent;
+}
+.rd-stat-box {
+    background: #fff;
+    padding: 16px 18px 0;
+}
+.rd-stat-label { font-size: 11px; color: #8b8f96; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+.rd-stat-value { font-size: 22px; font-weight: 700; color: #0A67DC; margin-bottom: 6px; }
+.rd-stat-value.green  { color: #2EA043; }
+.rd-stat-value.purple { color: #7C3AED; }
+.rd-sparkline { width: 100%; height: 60px; display: block; }
+
+/* ===== TOOLS PANEL ===== */
+.rd-tools-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    padding: 16px 18px 18px;
+}
+.rd-tool-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 6px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fafafa;
+    cursor: pointer;
+    font-size: 12px;
+    color: #374151;
+    font-weight: 500;
+    text-align: center;
+    transition: background 0.12s, border-color 0.12s;
+    line-height: 1.3;
+}
+.rd-tool-btn:hover { background: #eff6ff; border-color: #bfdbfe; color: #0A67DC; }
+
+/* ===== ACTIVITY LIST ===== */
+.rd-activity-list { padding: 2px 0; }
+.rd-activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 16px;
+    border-bottom: 1px solid #f3f3f3;
+    font-size: 13px;
+}
+.rd-activity-item:last-child { border-bottom: none; }
+.rd-activity-icon  { flex-shrink: 0; margin-top: 1px; }
+.rd-activity-body  { flex: 1; min-width: 0; }
+.rd-activity-msg   { color: #35383d; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-activity-meta  { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+.rd-act-ok      { color: #2EA043; }
+.rd-act-warning { color: #f59e0b; }
+.rd-act-error   { color: #dc2626; }
+.rd-act-info    { color: #6b7280; }
+
+/* ===== ALERTS PANEL ===== */
+.rd-alerts-list { padding: 2px 0; }
+.rd-alert-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid #f3f3f3;
+    font-size: 13px;
+}
+.rd-alert-row:last-child { border-bottom: none; }
+.rd-alert-icon  { flex-shrink: 0; }
+.rd-alert-msg   { flex: 1; color: #374151; }
+.rd-alert-badge {
+    display: inline-block;
+    padding: 1px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.rd-badge-active  { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+.rd-badge-warning { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.rd-badge-none    { display: none; }
+
+/* ===== TOOL MODAL ===== */
+.rd-modal {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.48);
+    z-index: 1000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
+.rd-modal-box {
+    background: #fff;
+    border-radius: 10px;
+    width: 700px;
+    max-width: 94%;
+    margin-top: 6vh;
+    display: flex;
+    flex-direction: column;
+    max-height: 84vh;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+.rd-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    font-weight: 600;
+    font-size: 15px;
+    color: #1f2937;
+    flex-shrink: 0;
+}
+.rd-modal-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 2px 6px;
+    line-height: 1;
+}
+.rd-modal-close:hover { color: #374151; }
+.rd-modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+.rd-target-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.rd-target-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #374151;
+}
+.rd-target-input:focus { outline: none; border-color: #0A67DC; }
+.rd-run-btn {
+    padding: 8px 20px;
+    background: #0A67DC;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+.rd-run-btn:hover { background: #0956c1; }
+.rd-output {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    padding: 14px;
+    border-radius: 6px;
+    white-space: pre-wrap;
+    min-height: 100px;
+    max-height: 420px;
+    overflow-y: auto;
+    line-height: 1.6;
+}
+
+/* ===== FOOTER REFRESH ===== */
+.rd-refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    color: #4f5359;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0;
+    transition: color 0.12s;
+}
+.rd-refresh-btn:hover { color: #0A67DC; }
+.rd-refresh-btn.loading .spin-icon { animation: rd-spin 1s linear infinite; }
+@keyframes rd-spin { to { transform: rotate(360deg); } }
+.spin-icon { display: inline-block; }

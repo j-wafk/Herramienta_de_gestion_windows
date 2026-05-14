@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="{{ current_user.language if current_user.is_authenticated else 'es' }}" data-theme="{{ current_user.theme if current_user.is_authenticated else 'light' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Control Remoto para Windows - Vista General</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vista_general.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile_modal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}">
+</head>
+<body data-user-role="{{ current_user.role }}">
+<div class="vg-wrapper">
+
+    <!-- HEADER -->
+    <header class="vg-header">
+        <div class="header-left">
+            <button class="hamburger" id="sidebarToggle" title="Mostrar/ocultar menú">
+                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            </button>
+            <span class="title">Control Remoto para Windows - Vista General</span>
+        </div>
+        <div class="header-right">
+            <div id="machine-selector-host"></div>
+            <div class="user-info-header">
+                <button class="user-profile-trigger" onclick="openProfileModal()" title="Editar perfil">
+                    <span class="hdr-avatar" id="hdrAvatar" data-color="{{ current_user.avatar_color or '#0A67DC' }}">{{ (current_user.full_name or current_user.username)[:1].upper() }}</span>
+                    <span id="hdrUsername">{{ current_user.full_name or current_user.username }}</span>
+                    <span class="user-role-tag">{{ current_user.role }}</span>
+                </button>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn" data-i18n="header.logout">Cerrar sesión</a>
+            </div>
+            <div class="conn-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="#38B000" stroke="#38B000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="connDotSvg"><circle cx="12" cy="12" r="10"/></svg>
+                <span id="connLabel" data-i18n="header.connected">CONECTADO</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="vg-body">
+
+        <!-- SIDEBAR -->
+        <nav class="vg-sidebar" id="sidebar">
+            <ul class="nav-list">
+                <li class="active">
+                    <a href="{{ url_for('index') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        <span class="nav-label" data-i18n="nav.overview">Vista General</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('rendimiento_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        <span class="nav-label" data-i18n="nav.performance">Rendimiento</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('hardware_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                        <span class="nav-label" data-i18n="nav.hardware">Hardware</span>
+                    </a>
+                </li>
+{% if current_user.role in ['superadmin', 'admin'] %}
+                <li class="nav-bottom">
+                    <a href="{{ url_for('auth.usuarios_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        <span class="nav-label" data-i18n="nav.users">Usuarios y Permisos</span>
+                    </a>
+                </li>
+                {% endif %}
+                <li>
+                    <a href="{{ url_for('particiones_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></svg>
+                        <span class="nav-label" data-i18n="nav.partitions">Particiones de Disco</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('red_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg>
+                        <span class="nav-label" data-i18n="nav.network">Configuración de Red</span>
+                    </a>
+                </li>
+                {% if current_user.role in ['superadmin', 'admin'] %}
+                <li class="nav-bottom">
+                    <a href="{{ url_for('auth.registros_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>
+                        <span class="nav-label" data-i18n="nav.logs">Registros del Sistema</span>
+                    </a>
+                </li>
+                {% endif %}
+<li>
+                    <a href="{{ url_for('backup_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        <span class="nav-label" data-i18n="nav.backup">Copias de Seguridad</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('monitorizacion_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                        <span class="nav-label" data-i18n="nav.monitoring">Monitorización</span>
+                    </a>
+                </li>
+</ul>
+
+            <div class="sidebar-machine">
+                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="machine-icon-svg"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                <div class="machine-details">
+                    <div class="machine-name"><span data-i18n="sidebar.device">Equipo:</span> <span id="sidebarHostname">Cargando...</span></div>
+                    <div id="sidebarOS">-</div>
+                    <div id="sidebarVersion">-</div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- MAIN -->
+        <main class="vg-main">
+            <h1 class="page-title" data-i18n="page.overview">Vista General del Sistema</h1>
+
+            <!-- TOP STAT CARDS -->
+            <div class="stat-cards">
+                <div class="stat-card cpu">
+                    <div class="card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-label">CPU</div>
+                        <div class="card-value" id="cpuValue">--%</div>
+                        <div class="card-sub" id="cpuSub">Cargando...</div>
+                    </div>
+                </div>
+                <div class="stat-card mem">
+                    <div class="card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/><path d="M8 11V9"/><path d="M16 11V9"/><path d="M12 11V9"/><path d="M2 15h20"/><path d="M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v1.1a2 2 0 0 0 0 3.837V17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-5.1a2 2 0 0 0 0-3.837Z"/></svg>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-label" data-i18n="vg.memory">Memoria</div>
+                        <div class="card-value" id="memValue">-- GB</div>
+                        <div class="card-sub" id="memSub">Cargando...</div>
+                    </div>
+                </div>
+                <div class="stat-card disk" id="diskCard">
+                    <div class="card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-label" data-i18n="vg.storage">Almacenamiento</div>
+                        <div class="card-value" id="diskValue">-- GB</div>
+                        <div class="card-sub" id="diskSub" data-i18n="vg.freeStorage">Espacio libre disponible</div>
+                    </div>
+                </div>
+                <div class="stat-card status" id="statusCard">
+                    <div class="card-icon" id="statusIconWrap">
+                        <svg id="statusIcon" xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-label" data-i18n="vg.generalStatus">Estado General</div>
+                        <div class="card-value" id="statusValue">OK</div>
+                        <div class="card-sub" id="statusSub">Cargando...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MIDDLE ROW -->
+            <div class="dashboard-grid">
+
+                <!-- Información del Equipo -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>
+                        <span data-i18n="vg.sysInfo">Información del Equipo</span>
+                    </div>
+                    <table class="info-table">
+                        <tr><td class="info-key" data-i18n="info.hostname">Hostname</td><td class="info-val" id="infoHostname"><span class="text-muted">-</span></td></tr>
+                        <tr><td class="info-key" data-i18n="info.os">Sistema Operativo</td><td class="info-val" id="infoOS"><span class="text-muted">-</span></td></tr>
+                        <tr><td class="info-key" data-i18n="info.lastBoot">Último reinicio</td><td class="info-val" id="infoLastBoot"><span class="text-muted">-</span></td></tr>
+                        <tr><td class="info-key" data-i18n="info.ip">Dirección IP</td><td class="info-val" id="infoIP"><span class="text-muted">-</span></td></tr>
+                        <tr><td class="info-key" data-i18n="info.activeUser">Usuario activo</td><td class="info-val" id="infoUser"><span class="text-muted">-</span></td></tr>
+                        <tr><td class="info-key" data-i18n="info.uptime">Uptime</td><td class="info-val" id="infoUptime"><span class="text-muted">-</span></td></tr>
+                    </table>
+                </div>
+
+                <!-- Rendimiento General -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+                        <span data-i18n="vg.generalPerf">Rendimiento General</span>
+                    </div>
+                    <div class="perf-list">
+                        <div class="perf-item">
+                            <div class="perf-row"><span class="perf-label">CPU</span><span class="perf-pct" id="perfCpuPct">--%</span></div>
+                            <div class="perf-bar-track"><div class="perf-bar-fill cpu-bar" id="perfCpuBar" style="width:0%"></div></div>
+                        </div>
+                        <div class="perf-item">
+                            <div class="perf-row"><span class="perf-label">RAM</span><span class="perf-pct" id="perfMemPct">--%</span></div>
+                            <div class="perf-bar-track"><div class="perf-bar-fill mem-bar" id="perfMemBar" style="width:0%"></div></div>
+                        </div>
+                        <div class="perf-item">
+                            <div class="perf-row"><span class="perf-label">Disco</span><span class="perf-pct" id="perfDiskPct">--%</span></div>
+                            <div class="perf-bar-track"><div class="perf-bar-fill disk-bar" id="perfDiskBar" style="width:0%"></div></div>
+                        </div>
+                        <div class="perf-item">
+                            <div class="perf-row"><span class="perf-label">Red</span><span class="perf-pct" id="perfNetPct">--%</span></div>
+                            <div class="perf-bar-track"><div class="perf-bar-fill net-bar" id="perfNetBar" style="width:0%"></div></div>
+                        </div>
+                    </div>
+                    <div class="perf-sub" id="perfSubLabel" data-i18n="vg.perfAvg">Uso promedio · Últimos 15 minutos</div>
+                </div>
+
+                <!-- Servicios Principales -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <span data-i18n="vg.mainServices">Servicios Principales</span>
+                    </div>
+                    <div class="services-list" id="servicesList">
+                        <div class="text-muted">Cargando servicios...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTTOM ROW -->
+            <div class="dashboard-grid">
+
+                <!-- Actividad Reciente -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg>
+                        <span data-i18n="vg.recentActivity">Actividad Reciente</span>
+                    </div>
+                    <div class="activity-list" id="activityList">
+                        <div class="text-muted">Cargando eventos...</div>
+                    </div>
+
+                </div>
+
+                <!-- Alertas y Seguridad -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+                        <span data-i18n="vg.alerts">Alertas y Seguridad</span>
+                    </div>
+                    <div class="alerts-list" id="alertsList">
+                        <div class="text-muted">Cargando alertas...</div>
+                    </div>
+                    <div class="security-status" id="securityStatus"></div>
+                </div>
+
+                <!-- Acciones Rápidas -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8H6a4 4 0 0 0-4 4 4 4 0 0 0 4 4h12a4 4 0 0 0 4-4 4 4 0 0 0-4-4z"/></svg>
+                        <span data-i18n="vg.quickActions">Acciones Rápidas</span>
+                    </div>
+                    <div class="quick-grid">
+                        <button class="qa-btn" id="btnActualizar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                            <span data-i18n="qa.refresh">Actualizar</span>
+                        </button>
+                        <a class="qa-btn" href="{{ url_for('rendimiento_page') }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+                            <span data-i18n="qa.viewProcesses">Ver Procesos</span>
+                        </a>
+                        {% if current_user.role in ['superadmin', 'admin'] %}
+                        <a class="qa-btn" href="{{ url_for('auth.registros_page') }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>
+                            <span data-i18n="qa.openLogs">Abrir Registros</span>
+                        </a>
+                        {% endif %}
+                        <a class="qa-btn" href="{{ url_for('backup_page') }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+                            <span data-i18n="qa.runBackup">Ejecutar Backup</span>
+                        </a>
+                        <a class="qa-btn qa-wide" href="{{ url_for('red_page') }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
+                            <span data-i18n="qa.checkNetwork">Revisar Red</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="vg-footer">
+        <div class="footer-left">
+            <span><span data-i18n="footer.lastUpdate">Última actualización:</span> <span id="lastUpdate">--</span></span>
+            <button class="refresh-btn" id="refreshBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="spin-icon"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                <span data-i18n="footer.refreshNow">Actualizar ahora</span>
+            </button>
+        </div>
+        <div class="footer-right">
+            <span data-i18n="footer.timezone">Zona horaria:</span>
+            <span>(UTC+02:00) Madrid</span>
+            <span class="tz-caret">▾</span>
+        </div>
+    </footer>
+
+</div>
+<script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+<script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+<script src="{{ url_for('static', filename='js/machine_selector.js') }}?v=13"></script>
+<script src="{{ url_for('static', filename='js/vista_general.js') }}?v=13"></script>
+<script src="{{ url_for('static', filename='js/profile_modal.js') }}"></script>
+<script src="{{ url_for('static', filename='js/csrf.js') }}"></script>
+</body>
+</html>

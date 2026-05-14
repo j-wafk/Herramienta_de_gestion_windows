@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="{{ current_user.language or 'es' }}" data-theme="{{ current_user.theme or 'light' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Control Remoto para Windows - Registros</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vista_general.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile_modal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}">
+    <style>
+        .reg-section { background: #fff; border: 1px solid #d6d6d6; border-radius: 8px; overflow: hidden; }
+        .reg-toolbar {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr 1fr 1fr 0.9fr 0.9fr auto;
+            gap: 10px;
+            padding: 14px 18px;
+            border-bottom: 1px solid #e8e8e8;
+            background: #fafafa;
+            align-items: end;
+        }
+        .reg-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .reg-field label { font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
+        .reg-field input, .reg-field select {
+            padding: 7px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            font-size: 13px;
+            font-family: inherit;
+            background: white;
+            color: #1f2328;
+            outline: none;
+            min-width: 0;
+        }
+        .reg-field input:focus, .reg-field select:focus { border-color: #0A67DC; box-shadow: 0 0 0 2px rgba(10,103,220,0.12); }
+        .reg-btn {
+            padding: 7px 14px;
+            background: #005FD2;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .reg-btn:hover { background: #0A67DC; }
+        .reg-btn.secondary { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+        .reg-btn.secondary:hover { background: #e5e7eb; }
+
+        .reg-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .reg-table thead th {
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            color: #53565c;
+            border-bottom: 1px solid #e8e8e8;
+            background: #fafafa;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            white-space: nowrap;
+        }
+        .reg-table tbody tr td {
+            padding: 9px 14px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #35383d;
+            vertical-align: top;
+        }
+        .reg-table tbody tr:hover td { background: #f8f9fb; }
+        .reg-table .reg-ts { white-space: nowrap; font-family: 'Consolas', monospace; font-size: 12px; color: #4f5359; }
+        .reg-table .reg-user { font-weight: 600; }
+        .reg-table .reg-ip { font-family: 'Consolas', monospace; font-size: 12px; color: #6b7280; }
+        .reg-table .reg-machine {
+            font-size: 12px;
+            color: #1e40af;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 4px;
+            padding: 2px 8px;
+            display: inline-block;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .reg-table .reg-machine.local { color: #4b5563; background: #f3f4f6; border-color: #d1d5db; }
+        .reg-table .reg-machine.empty { color: #9ca3af; background: transparent; border-color: transparent; font-weight: 400; }
+        .reg-table .reg-action-cell { font-family: 'Consolas', monospace; font-size: 12px; }
+        .reg-table .reg-detail { color: #4f5359; font-size: 12px; word-break: break-word; max-width: 320px; }
+        .reg-table .reg-resource { font-family: 'Consolas', monospace; font-size: 12px; color: #4f5359; word-break: break-word; max-width: 220px; }
+
+        .reg-action-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid;
+        }
+        .reg-action-badge.success { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+        .reg-action-badge.failed  { background: #fff0f0; color: #b91c1c; border-color: #fca5a5; }
+        .reg-action-badge.warn    { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+        .reg-action-badge.info    { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+
+        .reg-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 18px;
+            border-top: 1px solid #e8e8e8;
+            background: #fafafa;
+            font-size: 13px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .reg-pagination .reg-info { color: #6b7280; }
+        .reg-pagination .reg-pages { display: flex; gap: 4px; }
+        .reg-page-btn {
+            padding: 5px 10px;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #374151;
+            font-family: inherit;
+            min-width: 30px;
+        }
+        .reg-page-btn:hover:not(:disabled) { background: #f3f4f6; }
+        .reg-page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .reg-page-btn.active { background: #0A67DC; color: white; border-color: #0855b8; }
+
+        .reg-empty { padding: 40px; text-align: center; color: #6b7280; font-size: 14px; }
+
+        /* La sección llena el alto disponible del main; toolbar y paginación
+         * son auto-height y la tabla absorbe el espacio sobrante con scroll. */
+        .reg-section {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+        .reg-toolbar    { flex: 0 0 auto; }
+        .reg-pagination { flex: 0 0 auto; }
+        .reg-table-scroll {
+            flex: 1 1 auto;
+            min-height: 200px;   /* nunca colapsa del todo */
+            overflow-y: auto;
+            overflow-x: auto;
+        }
+
+        /* Dropdown Exportar (mismo look que el del footer en otras páginas) */
+        .reg-export {
+            position: relative;
+            display: inline-block;
+        }
+        .reg-export-btn {
+            padding: 7px 14px;
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .reg-export-btn:hover { background: #e5e7eb; }
+        .reg-export-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 4px);
+            background: #fff;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            box-shadow: 0 6px 20px rgba(0,0,0,.12);
+            min-width: 180px;
+            padding: 6px;
+            z-index: 100;
+        }
+        .reg-export.open .reg-export-menu { display: block; }
+        .reg-export-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-size: 13px;
+            color: #1f2328;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .reg-export-item:hover { background: #f3f4f6; }
+    </style>
+</head>
+<body data-user-role="{{ current_user.role }}">
+<div class="vg-wrapper">
+
+    <!-- HEADER -->
+    <header class="vg-header">
+        <div class="header-left">
+            <button class="hamburger" id="sidebarToggle" title="Mostrar/ocultar menú">
+                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            </button>
+            <span class="title">Control Remoto para Windows - Registros</span>
+        </div>
+        <div class="header-right">
+            <div id="machine-selector-host"></div>
+            <div class="user-info-header">
+                <button class="user-profile-trigger" onclick="openProfileModal()" title="Editar perfil">
+                    <span class="hdr-avatar" id="hdrAvatar" data-color="{{ current_user.avatar_color or '#0A67DC' }}">{{ (current_user.full_name or current_user.username)[:1].upper() }}</span>
+                    <span id="hdrUsername">{{ current_user.full_name or current_user.username }}</span>
+                    <span class="user-role-tag">{{ current_user.role }}</span>
+                </button>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn" data-i18n="header.logout">Cerrar sesión</a>
+            </div>
+            <div class="conn-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="#38B000" stroke="#38B000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="connDotSvg"><circle cx="12" cy="12" r="10"/></svg>
+                <span id="connLabel" data-i18n="header.connected">CONECTADO</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="vg-body">
+
+        <!-- SIDEBAR -->
+        <nav class="vg-sidebar" id="sidebar">
+            <ul class="nav-list">
+                <li>
+                    <a href="{{ url_for('index') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        <span class="nav-label" data-i18n="nav.overview">Vista General</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('rendimiento_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        <span class="nav-label" data-i18n="nav.performance">Rendimiento</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('hardware_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                        <span class="nav-label" data-i18n="nav.hardware">Hardware</span>
+                    </a>
+                </li>
+{% if current_user.role in ['superadmin', 'admin'] %}
+                <li class="nav-bottom">
+                    <a href="{{ url_for('auth.usuarios_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        <span class="nav-label" data-i18n="nav.users">Usuarios y Permisos</span>
+                    </a>
+                </li>
+                {% endif %}
+                <li>
+                    <a href="{{ url_for('particiones_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></svg>
+                        <span class="nav-label" data-i18n="nav.partitions">Particiones de Disco</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('red_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg>
+                        <span class="nav-label" data-i18n="nav.network">Configuración de Red</span>
+                    </a>
+                </li>
+                <li class="active nav-bottom">
+                    <a href="{{ url_for('auth.registros_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>
+                        <span class="nav-label" data-i18n="nav.logs">Registros del Sistema</span>
+                    </a>
+                </li>
+<li>
+                    <a href="{{ url_for('backup_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        <span class="nav-label" data-i18n="nav.backup">Copias de Seguridad</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('monitorizacion_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                        <span class="nav-label" data-i18n="nav.monitoring">Monitorización</span>
+                    </a>
+                </li>
+</ul>
+
+            <div class="sidebar-machine">
+                <svg class="machine-icon-svg" xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                <div class="machine-details">
+                    <div class="machine-name" id="sidebarHostname">-</div>
+                    <div id="sidebarOS">-</div>
+                    <div id="sidebarVersion">-</div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- MAIN -->
+        <main class="vg-main">
+            <div class="page-title" data-i18n="page.logs">Registros de la Aplicación</div>
+
+            <div class="reg-section">
+                <div class="reg-toolbar">
+                    <div class="reg-field">
+                        <label for="filterText">Buscar</label>
+                        <input type="text" id="filterText" placeholder="Texto en cualquier campo…">
+                    </div>
+                    <div class="reg-field">
+                        <label for="filterUser">Usuario</label>
+                        <input type="text" id="filterUser" placeholder="Filtrar por usuario…" list="usersDatalist">
+                        <datalist id="usersDatalist"></datalist>
+                    </div>
+                    <div class="reg-field">
+                        <label for="filterMachine">Máquina</label>
+                        <input type="text" id="filterMachine" placeholder="Filtrar por máquina…" list="machinesDatalist">
+                        <datalist id="machinesDatalist"></datalist>
+                    </div>
+                    <div class="reg-field">
+                        <label for="filterAction">Acción</label>
+                        <select id="filterAction">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div class="reg-field">
+                        <label for="filterFrom">Desde</label>
+                        <input type="date" id="filterFrom">
+                    </div>
+                    <div class="reg-field">
+                        <label for="filterTo">Hasta</label>
+                        <input type="date" id="filterTo">
+                    </div>
+                    <div class="reg-field">
+                        <label>&nbsp;</label>
+                        <button class="reg-btn" id="btnApply">Aplicar</button>
+                    </div>
+                    <div class="reg-field">
+                        <label>&nbsp;</label>
+                        <div class="reg-export" id="regExport">
+                            <button class="reg-export-btn" id="btnExport" type="button" title="Exportar registros con los filtros aplicados">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                                Exportar
+                            </button>
+                            <div class="reg-export-menu">
+                                <button class="reg-export-item" data-fmt="csv">CSV (.csv)</button>
+                                <button class="reg-export-item" data-fmt="xlsx">Excel (.xlsx)</button>
+                                <button class="reg-export-item" data-fmt="pdf">PDF</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="reg-table-scroll">
+                    <table class="reg-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha y Hora</th>
+                                <th>Usuario</th>
+                                <th>Máquina</th>
+                                <th>Acción</th>
+                                <th>Recurso</th>
+                                <th>IP origen</th>
+                                <th>Detalle</th>
+                            </tr>
+                        </thead>
+                        <tbody id="regBody">
+                            <tr><td colspan="7" class="reg-empty">Cargando registros…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="reg-pagination">
+                    <span class="reg-info" id="regInfo">—</span>
+                    <div class="reg-pages" id="regPages"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <footer class="vg-footer">
+        <span id="footerTime">—</span>
+    </footer>
+</div>
+
+<script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+<script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+<script src="{{ url_for('static', filename='js/machine_selector.js') }}?v=13"></script>
+<script src="{{ url_for('static', filename='js/sidebar_info.js') }}"></script>
+<script>
+let _state = { page: 1, per_page: 50 };
+
+function actionBadgeClass(action) {
+    if (!action) return 'info';
+    const a = action.toLowerCase();
+    if (a.includes('failed') || a.includes('error') || a.includes('delete')) return 'failed';
+    if (a.includes('success') || a.includes('created') || a.includes('add')) return 'success';
+    if (a.includes('warning') || a.includes('changed') || a.includes('updated') || a.includes('schedule')) return 'warn';
+    return 'info';
+}
+
+function formatTimestamp(ts) {
+    if (!ts) return '—';
+    // ts viene como "2026-05-07 10:30:45,123" — quitamos los milisegundos
+    const clean = ts.split(',')[0];
+    return clean;
+}
+
+async function loadLogs() {
+    const params = new URLSearchParams();
+    params.set('page', _state.page);
+    params.set('per_page', _state.per_page);
+    const text    = document.getElementById('filterText').value.trim();
+    const user    = document.getElementById('filterUser').value.trim();
+    const machine = document.getElementById('filterMachine').value.trim();
+    const action  = document.getElementById('filterAction').value;
+    const from    = document.getElementById('filterFrom').value;
+    const to      = document.getElementById('filterTo').value;
+    if (text)    params.set('q', text);
+    if (user)    params.set('user', user);
+    if (machine) params.set('machine', machine);
+    if (action)  params.set('action', action);
+    if (from)    params.set('from', from);
+    if (to)      params.set('to', to);
+
+    try {
+        const r = await fetch(`/auth/api/registros?${params.toString()}`);
+        if (!r.ok) {
+            let msg;
+            if (r.status === 401)      msg = 'Sesión caducada. Recarga la página.';
+            else if (r.status === 403) msg = 'No tiene permiso para ver los registros.';
+            else if (r.status === 404) msg = 'Endpoint no disponible (¿servidor sin actualizar?).';
+            else if (r.status >= 500)  msg = `Error del servidor (${r.status}). Mira el Network del navegador o app.log para más detalle.`;
+            else                       msg = `Error HTTP ${r.status}.`;
+            // Intenta leer cuerpo JSON con detalle
+            try {
+                const j = await r.json();
+                if (j && j.error) msg += ` — ${j.error}`;
+            } catch (_) {}
+            console.error('GET /auth/api/registros →', r.status, msg);
+            document.getElementById('regBody').innerHTML =
+                `<tr><td colspan="7" class="reg-empty">${msg}</td></tr>`;
+            return;
+        }
+        const data = await r.json();
+        renderTable(data);
+        renderPagination(data);
+        renderFilters(data);
+    } catch (e) {
+        console.error('Network error en /auth/api/registros:', e);
+        document.getElementById('regBody').innerHTML =
+            `<tr><td colspan="7" class="reg-empty">Error de red al cargar registros: ${e.message}</td></tr>`;
+    }
+}
+
+function renderTable(data) {
+    const body = document.getElementById('regBody');
+    if (!data.entries || data.entries.length === 0) {
+        body.innerHTML = '<tr><td colspan="7" class="reg-empty">No hay registros con los filtros aplicados.</td></tr>';
+        return;
+    }
+    const esc = (s) => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    body.innerHTML = data.entries.map(e => {
+        const m = (e.machine || '').trim();
+        let machineCls = 'reg-machine';
+        let machineTxt = m;
+        if (!m || m === '-') { machineCls += ' empty'; machineTxt = '—'; }
+        else if (m.toLowerCase() === 'local') { machineCls += ' local'; }
+        return `
+            <tr>
+                <td class="reg-ts">${esc(formatTimestamp(e.timestamp))}</td>
+                <td class="reg-user">${esc(e.user)}</td>
+                <td><span class="${machineCls}">${esc(machineTxt)}</span></td>
+                <td class="reg-action-cell"><span class="reg-action-badge ${actionBadgeClass(e.action)}">${esc(e.action)}</span></td>
+                <td class="reg-resource">${esc(e.resource)}</td>
+                <td class="reg-ip">${esc(e.ip)}</td>
+                <td class="reg-detail">${esc(e.detail)}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function renderPagination(data) {
+    const info = document.getElementById('regInfo');
+    const pages = document.getElementById('regPages');
+    const start = (data.page - 1) * data.per_page + 1;
+    const end = Math.min(data.page * data.per_page, data.total);
+    info.textContent = data.total > 0
+        ? `Mostrando ${start}-${end} de ${data.total} registros`
+        : 'Sin resultados';
+
+    const totalPages = data.pages || 1;
+    const cur = data.page;
+    let buttons = [];
+    buttons.push(`<button class="reg-page-btn" ${cur <= 1 ? 'disabled' : ''} data-page="${cur - 1}">‹</button>`);
+    const window_size = 5;
+    let s = Math.max(1, cur - Math.floor(window_size / 2));
+    let e = Math.min(totalPages, s + window_size - 1);
+    if (e - s + 1 < window_size) s = Math.max(1, e - window_size + 1);
+    if (s > 1) {
+        buttons.push(`<button class="reg-page-btn" data-page="1">1</button>`);
+        if (s > 2) buttons.push(`<span style="padding:0 4px;color:#9ca3af">…</span>`);
+    }
+    for (let i = s; i <= e; i++) {
+        buttons.push(`<button class="reg-page-btn ${i === cur ? 'active' : ''}" data-page="${i}">${i}</button>`);
+    }
+    if (e < totalPages) {
+        if (e < totalPages - 1) buttons.push(`<span style="padding:0 4px;color:#9ca3af">…</span>`);
+        buttons.push(`<button class="reg-page-btn" data-page="${totalPages}">${totalPages}</button>`);
+    }
+    buttons.push(`<button class="reg-page-btn" ${cur >= totalPages ? 'disabled' : ''} data-page="${cur + 1}">›</button>`);
+    pages.innerHTML = buttons.join('');
+    pages.querySelectorAll('.reg-page-btn[data-page]').forEach(b => {
+        b.addEventListener('click', () => {
+            _state.page = parseInt(b.dataset.page, 10);
+            loadLogs();
+        });
+    });
+}
+
+function renderFilters(data) {
+    const sel = document.getElementById('filterAction');
+    if (sel.options.length <= 1 && data.actions) {
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">Todas</option>' +
+            data.actions.map(a => `<option value="${a}">${a}</option>`).join('');
+        if (cur) sel.value = cur;
+    }
+    const dlu = document.getElementById('usersDatalist');
+    if (dlu && data.users) {
+        dlu.innerHTML = data.users.map(u => `<option value="${u}"></option>`).join('');
+    }
+    const dlm = document.getElementById('machinesDatalist');
+    if (dlm && data.machines) {
+        dlm.innerHTML = data.machines.map(m => `<option value="${m}"></option>`).join('');
+    }
+}
+
+document.getElementById('btnApply')?.addEventListener('click', () => {
+    _state.page = 1;
+    loadLogs();
+});
+['filterText', 'filterUser', 'filterMachine', 'filterFrom', 'filterTo'].forEach(id => {
+    document.getElementById(id)?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { _state.page = 1; loadLogs(); }
+    });
+});
+document.getElementById('filterAction')?.addEventListener('change', () => { _state.page = 1; loadLogs(); });
+
+// ── Exportar (CSV/XLSX/PDF) usando los filtros activos ─────────────
+function buildFilterParams() {
+    const params = new URLSearchParams();
+    const text    = document.getElementById('filterText').value.trim();
+    const user    = document.getElementById('filterUser').value.trim();
+    const machine = document.getElementById('filterMachine').value.trim();
+    const action  = document.getElementById('filterAction').value;
+    const from    = document.getElementById('filterFrom').value;
+    const to      = document.getElementById('filterTo').value;
+    if (text)    params.set('q', text);
+    if (user)    params.set('user', user);
+    if (machine) params.set('machine', machine);
+    if (action)  params.set('action', action);
+    if (from)    params.set('from', from);
+    if (to)      params.set('to', to);
+    return params;
+}
+
+const _exp = document.getElementById('regExport');
+document.getElementById('btnExport')?.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    _exp?.classList.toggle('open');
+});
+document.addEventListener('click', (ev) => {
+    if (_exp && !_exp.contains(ev.target)) _exp.classList.remove('open');
+});
+document.querySelectorAll('.reg-export-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const fmt = btn.dataset.fmt;
+        const params = buildFilterParams();
+        params.set('format', fmt);
+        // Abrir en nueva pestaña/ventana para descargar el fichero
+        window.open(`/auth/api/registros/export?${params.toString()}`, '_blank');
+        _exp?.classList.remove('open');
+    });
+});
+
+// Sidebar toggle + persistencia (igual que el resto de páginas)
+(function () {
+    const sidebar = document.getElementById('sidebar');
+    if (localStorage.getItem('sidebarCollapsed') === 'true') sidebar?.classList.add('collapsed');
+    document.getElementById('sidebarToggle')?.addEventListener('click', () => {
+        sidebar?.classList.toggle('collapsed');
+        localStorage.setItem('sidebarCollapsed', sidebar?.classList.contains('collapsed') ? 'true' : 'false');
+    });
+})();
+
+function updateClock() {
+    const el = document.getElementById('footerTime');
+    if (el) el.textContent = 'Actualizado: ' + new Date().toLocaleString('es-ES');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Recargar cuando el usuario cambie de máquina activa
+window.addEventListener('machineChanged', () => { _state.page = 1; loadLogs(); });
+
+loadLogs();
+</script>
+<script src="{{ url_for('static', filename='js/profile_modal.js') }}"></script>
+<script src="{{ url_for('static', filename='js/csrf.js') }}"></script>
+</body>
+</html>

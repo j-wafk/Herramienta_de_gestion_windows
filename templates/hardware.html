@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="{{ current_user.language if current_user.is_authenticated else 'es' }}" data-theme="{{ current_user.theme if current_user.is_authenticated else 'light' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Control Remoto para Windows - Hardware</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vista_general.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/hardware.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile_modal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}">
+</head>
+<body data-user-role="{{ current_user.role }}">
+<div class="vg-wrapper">
+
+    <!-- HEADER -->
+    <header class="vg-header">
+        <div class="header-left">
+            <button class="hamburger" id="sidebarToggle" title="Mostrar/ocultar menú">
+                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            </button>
+            <span class="title">Control Remoto para Windows - Hardware</span>
+        </div>
+        <div class="header-right">
+            <div id="machine-selector-host"></div>
+            <div class="user-info-header">
+                <button class="user-profile-trigger" onclick="openProfileModal()" title="Editar perfil">
+                    <span class="hdr-avatar" id="hdrAvatar" data-color="{{ current_user.avatar_color or '#0A67DC' }}">{{ (current_user.full_name or current_user.username)[:1].upper() }}</span>
+                    <span id="hdrUsername">{{ current_user.full_name or current_user.username }}</span>
+                    <span class="user-role-tag">{{ current_user.role }}</span>
+                </button>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn" data-i18n="header.logout">Cerrar sesión</a>
+            </div>
+            <div class="conn-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="#38B000" stroke="#38B000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>
+                <span id="connLabel" data-i18n="header.connected">CONECTADO</span>
+            </div>
+        </div>
+        <span id="status-indicator" style="display:none" class="status connected">CONECTADO</span>
+    </header>
+
+    <div class="vg-body">
+
+        <!-- SIDEBAR -->
+        <nav class="vg-sidebar" id="sidebar">
+            <ul class="nav-list">
+                <li>
+                    <a href="{{ url_for('index') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        <span class="nav-label" data-i18n="nav.overview">Vista General</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('rendimiento_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        <span class="nav-label" data-i18n="nav.performance">Rendimiento</span>
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="{{ url_for('hardware_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                        <span class="nav-label" data-i18n="nav.hardware">Hardware</span>
+                    </a>
+                </li>
+{% if current_user.role in ['superadmin', 'admin'] %}
+                <li class="nav-bottom">
+                    <a href="{{ url_for('auth.usuarios_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        <span class="nav-label" data-i18n="nav.users">Usuarios y Permisos</span>
+                    </a>
+                </li>
+                {% endif %}
+                <li>
+                    <a href="{{ url_for('particiones_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></svg>
+                        <span class="nav-label" data-i18n="nav.partitions">Particiones de Disco</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('red_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg>
+                        <span class="nav-label" data-i18n="nav.network">Configuración de Red</span>
+                    </a>
+                </li>
+                {% if current_user.role in ['superadmin', 'admin'] %}
+                <li class="nav-bottom">
+                    <a href="{{ url_for('auth.registros_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>
+                        <span class="nav-label" data-i18n="nav.logs">Registros del Sistema</span>
+                    </a>
+                </li>
+                {% endif %}
+<li>
+                    <a href="{{ url_for('backup_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        <span class="nav-label" data-i18n="nav.backup">Copias de Seguridad</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('monitorizacion_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                        <span class="nav-label" data-i18n="nav.monitoring">Monitorización</span>
+                    </a>
+                </li>
+</ul>
+
+            <div class="sidebar-machine">
+                <svg class="machine-icon-svg" xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                <div class="machine-details">
+                    <div class="machine-name" id="sidebarHostname">-</div>
+                    <div id="sidebarOS">-</div>
+                    <div id="sidebarVersion">-</div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- MAIN CONTENT -->
+        <main class="vg-main">
+            <div class="page-title" data-i18n="page.hardware">Hardware</div>
+
+            <!-- TOP ROW: Resumen Sistema | CPU | RAM -->
+            <div class="hw-grid-top">
+
+                <!-- Resumen del Sistema -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                        Resumen del Sistema
+                    </div>
+                    <div class="panel-body">
+                        <table class="info-table" id="sysResumenTable">
+                            <tbody>
+                                <tr><td class="info-key">Equipo</td><td class="info-val" id="hwHostname">-</td></tr>
+                                <tr><td class="info-key">Sistema Operativo</td><td class="info-val" id="hwOS">-</td></tr>
+                                <tr><td class="info-key">Tiempo activo</td><td class="info-val" id="hwUptime">-</td></tr>
+                                <tr><td class="info-key">Fabricante</td><td class="info-val" id="hwManufacturer">-</td></tr>
+                                <tr><td class="info-key">Modelo</td><td class="info-val" id="hwModel">-</td></tr>
+                                <tr><td class="info-key">Número de Serie</td><td class="info-val" id="hwSerial">-</td></tr>
+                                <tr><td class="info-key">BIOS</td><td class="info-val" id="hwBios">-</td></tr>
+                                <tr><td class="info-key">Arquitectura</td><td class="info-val" id="hwArch">-</td></tr>
+                                <tr><td class="info-key">DirectX</td><td class="info-val" id="hwDirectX">-</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Procesador -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                        Procesador (CPU)
+                    </div>
+                    <div class="panel-body">
+                        <table class="info-table" id="cpuTable">
+                            <tbody>
+                                <tr><td class="info-key">Modelo</td><td class="info-val" id="cpuModel">-</td></tr>
+                                <tr><td class="info-key">Sockets</td><td class="info-val" id="cpuSockets">-</td></tr>
+                                <tr><td class="info-key">Núcleos / Hilos</td><td class="info-val" id="cpuCores">-</td></tr>
+                                <tr><td class="info-key">Frecuencia base</td><td class="info-val" id="cpuBaseFreq">-</td></tr>
+                                <tr><td class="info-key">Frecuencia actual</td><td class="info-val" id="cpuCurFreq">-</td></tr>
+                                <tr><td class="info-key">Caché L1</td><td class="info-val" id="cpuL1">-</td></tr>
+                                <tr><td class="info-key">Caché L2</td><td class="info-val" id="cpuL2">-</td></tr>
+                                <tr><td class="info-key">Caché L3</td><td class="info-val" id="cpuL3">-</td></tr>
+                                <tr><td class="info-key">Virtualización</td><td class="info-val" id="cpuVirt">-</td></tr>
+                                <tr><td class="info-key">Temperatura</td><td class="info-val" id="cpuTemp">-</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Memoria RAM -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="19" y2="22"/><line x1="10" x2="10" y1="19" y2="22"/><line x1="14" x2="14" y1="19" y2="22"/><line x1="18" x2="18" y1="19" y2="22"/><rect x="2" y="7" width="20" height="12" rx="2"/><path d="M6 7V5c0-1.1.9-2 2-2h8a2 2 0 0 1 2 2v2"/></svg>
+                        Memoria RAM
+                    </div>
+                    <div class="panel-body">
+                        <table class="info-table">
+                            <tbody>
+                                <tr><td class="info-key">Total instalada</td><td class="info-val" id="ramTotal">-</td></tr>
+                                <tr><td class="info-key">En uso</td><td class="info-val" id="ramUsed">-</td></tr>
+                                <tr><td class="info-key">Disponible</td><td class="info-val" id="ramFree">-</td></tr>
+                                <tr><td class="info-key">Velocidad</td><td class="info-val" id="ramSpeed">-</td></tr>
+                                <tr><td class="info-key">Tipo</td><td class="info-val" id="ramType">-</td></tr>
+                                <tr><td class="info-key">Slots usados</td><td class="info-val" id="ramSlots">-</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="ram-bar-section">
+                        <div class="ram-bar-labels">
+                            <span>0</span>
+                            <span id="ramBarUsedLabel">-- GB usados</span>
+                            <span id="ramBarTotal">-- GB</span>
+                        </div>
+                        <div class="ram-bar-track">
+                            <div class="ram-bar-used" id="ramBarFill" style="width:0%"></div>
+                        </div>
+                        <div class="ram-bar-markers">
+                            <span>0</span><span id="ram25">-</span><span id="ram50">-</span><span id="ram75">-</span><span id="ram100">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ALMACENAMIENTO (full width) -->
+            <div class="panel">
+                <div class="panel-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></svg>
+                    Almacenamiento
+                </div>
+                <div>
+                    <table class="disk-table" id="diskTable">
+                        <thead>
+                            <tr>
+                                <th>Disco</th>
+                                <th>Modelo</th>
+                                <th>Tipo</th>
+                                <th>Capacidad</th>
+                                <th>En uso</th>
+                                <th>Estado</th>
+                                <th>Temperatura</th>
+                            </tr>
+                        </thead>
+                        <tbody id="diskTableBody">
+                            <tr><td colspan="7" style="padding:14px;color:#6b7280;font-size:13px;">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- BOTTOM ROW: GPU | Placa Base | Dispositivos -->
+            <div class="hw-grid-bottom">
+
+                <!-- Tarjetas Gráficas -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" x2="23" y1="10" y2="10"/></svg>
+                        Tarjetas Gráficas
+                    </div>
+                    <div>
+                        <table class="gpu-table" id="gpuTable">
+                            <thead>
+                                <tr>
+                                    <th>GPU</th>
+                                    <th>Modelo</th>
+                                    <th>Memoria</th>
+                                    <th>Controlador</th>
+                                    <th>Versión</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gpuTableBody">
+                                <tr><td colspan="5" style="padding:14px;color:#6b7280;font-size:13px;">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Placa Base -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="1"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
+                        Placa Base
+                    </div>
+                    <div class="panel-body">
+                        <table class="info-table" id="mbTable">
+                            <tbody>
+                                <tr><td class="info-key">Modelo</td><td class="info-val" id="mbModel">-</td></tr>
+                                <tr><td class="info-key">Fabricante</td><td class="info-val" id="mbManufacturer">-</td></tr>
+                                <tr><td class="info-key">Versión</td><td class="info-val" id="mbVersion">-</td></tr>
+                                <tr><td class="info-key">Chipset</td><td class="info-val" id="mbChipset">-</td></tr>
+                                <tr><td class="info-key">Fecha de fabricación</td><td class="info-val" id="mbDate">-</td></tr>
+                                <tr><td class="info-key">BIOS</td><td class="info-val" id="mbBios">-</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Dispositivos -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 3 3 2.1"/><path d="m15 3-3 2.1"/><path d="M9 19l3-2.1"/><path d="m15 19-3-2.1"/><path d="M3 9.1l2.1 3"/><path d="m3 15 2.1-3"/><path d="m19 9.1 2.1 3"/><path d="m19 15 2.1-3"/><circle cx="12" cy="12" r="4"/></svg>
+                        Dispositivos
+                    </div>
+                    <div class="devices-list" id="devicesList">
+                        <div class="device-row">
+                            <span class="device-type" style="color:#6b7280">Cargando...</span>
+                            <span class="device-name"></span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="vg-footer">
+        <div class="footer-left">
+            <span><span data-i18n="footer.lastUpdate">Última actualización:</span> <span id="lastUpdate">--</span></span>
+            {% if current_user.role in ['superadmin', 'admin', 'operador'] %}
+            <button class="hw-refresh-btn" id="refreshBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="spin-icon"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                <span data-i18n="footer.refreshNow">Actualizar ahora</span>
+            </button>
+            {% endif %}
+        </div>
+        <div class="footer-right">
+            <button class="export-btn" onclick="_openExpModal('xlsx')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                Exportar
+            </button>
+            <span data-i18n="footer.timezone">Zona horaria:</span>
+            <span>(UTC+02:00) Madrid</span>
+            <span class="tz-caret">▾</span>
+        </div>
+    </footer>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+<script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+<script src="{{ url_for('static', filename='js/machine_selector.js') }}?v=13"></script>
+<script>
+// ── helpers ───────────────────────────────────────────────────────────────────
+function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+}
+
+function nowStr() {
+    const d = new Date();
+    return [d.getDate(), d.getMonth()+1, d.getFullYear()].map(n=>String(n).padStart(2,'0')).join('/') + ' ' +
+           [d.getHours(), d.getMinutes(), d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
+}
+
+function fmtTs(iso) {
+    if (!iso) return '--';
+    const d = new Date(iso);
+    return [d.getDate(), d.getMonth()+1, d.getFullYear()].map(n=>String(n).padStart(2,'0')).join('/') + ' ' +
+           [d.getHours(), d.getMinutes(), d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
+}
+
+function mq(sep) { return window.MS ? window.MS.machineQuery(sep) : ''; }
+
+async function safeFetch(url, opts) {
+    try {
+        const sep = url.includes('?') ? '&' : '?';
+        const r = await fetch(url + (opts ? '' : mq(sep)), opts);
+        if (!r.ok) throw new Error(r.status);
+        return await r.json();
+    } catch (e) { return null; }
+}
+
+// ── display functions ─────────────────────────────────────────────────────────
+function updateSysResumen(data) {
+    if (!data || !Object.keys(data).length) return;
+    setText('hwHostname',     data.hostname     || '-');
+    setText('hwOS',           data.os           || '-');
+    setText('hwUptime',       data.uptime       || '-');
+    setText('hwManufacturer', data.manufacturer || '-');
+    setText('hwModel',        data.model        || '-');
+    setText('hwSerial',       data.serial       || '-');
+    setText('hwBios',         data.bios         || '-');
+    setText('hwArch',         data.arch         || '-');
+    setText('hwDirectX',      data.directx      || '-');
+    setText('sidebarHostname', data.hostname    || '-');
+    const os = data.os || '-';
+    setText('sidebarOS', os.length > 28 ? os.substring(0, 28) + '…' : os);
+    setText('sidebarVersion', data.ip ? 'IP: ' + data.ip : '');
+}
+
+function updateCPU(data) {
+    if (!data || !Object.keys(data).length) return;
+    setText('cpuModel',    data.model || '-');
+    const sockets = data.sockets != null ? String(data.sockets) : '-';
+    setText('cpuSockets', sockets);
+    const cores = data.cores != null ? data.cores : '-';
+    const threads = data.threads != null ? data.threads : '-';
+    setText('cpuCores', (cores !== '-' && threads !== '-') ? `${cores} / ${threads}` : '-');
+    setText('cpuBaseFreq', data.base_freq    || '-');
+    setText('cpuCurFreq',  data.current_freq || '-');
+    setText('cpuL1',  data.cache_l1 || '-');
+    setText('cpuL2',  data.cache_l2 || '-');
+    setText('cpuL3',  data.cache_l3 || '-');
+    setText('cpuVirt', data.virtualization || '-');
+    const tempEl = document.getElementById('cpuTemp');
+    if (tempEl) {
+        const t = data.temperature;
+        if (!t || t === '-') { tempEl.textContent = '-'; tempEl.className = 'info-val'; return; }
+        tempEl.textContent = t + ' °C';
+        const n = parseFloat(t);
+        tempEl.className = 'info-val ' + (n >= 80 ? 'highlight' : n >= 65 ? 'temp-warn' : 'temp-ok');
+    }
+}
+
+function _updateMemoryStatic(data) {
+    const totalGB = parseFloat(data.total_gb) || 0;
+    setText('ramTotal', totalGB.toFixed(1) + ' GB');
+    setText('ramSpeed', data.speed ? data.speed + ' MHz' : '-');
+    setText('ramType',  data.type || '-');
+    const su = data.slots_used || 0, st = data.slots_total || 0;
+    setText('ramSlots', (su || st) ? `${su} de ${st}` : '-');
+    setText('ramBarTotal', totalGB.toFixed(0) + ' GB');
+    const step = totalGB / 4;
+    ['ram25','ram50','ram75','ram100'].forEach((id, i) => setText(id, ((i+1)*step).toFixed(0) + ' GB'));
+    return totalGB;
+}
+
+function updateMemory(data) {
+    if (!data || !Object.keys(data).length) return;
+    const totalGB = _updateMemoryStatic(data);
+    const usedGB = parseFloat(data.used_gb) || 0;
+    const freeGB = parseFloat(data.free_gb) || 0;
+    const pct = totalGB > 0 ? Math.round(usedGB / totalGB * 100) : 0;
+    setText('ramUsed', usedGB.toFixed(1) + ' GB (' + pct + '%)');
+    setText('ramFree', freeGB.toFixed(1) + ' GB (' + (100 - pct) + '%)');
+    setText('ramBarUsedLabel', usedGB.toFixed(1) + ' GB usados');
+    const fill = document.getElementById('ramBarFill');
+    if (fill) fill.style.width = pct + '%';
+}
+
+function updateRamBar(data) {
+    if (!data) return;
+    const totalGB = parseFloat(data.total_gb) || 0;
+    const usedGB  = parseFloat(data.used_gb)  || 0;
+    const freeGB  = parseFloat(data.free_gb)  || 0;
+    const pct = totalGB > 0 ? Math.round(usedGB / totalGB * 100) : 0;
+    setText('ramUsed', usedGB.toFixed(1) + ' GB (' + pct + '%)');
+    setText('ramFree', freeGB.toFixed(1) + ' GB (' + (100 - pct) + '%)');
+    setText('ramBarUsedLabel', usedGB.toFixed(1) + ' GB usados');
+    const fill = document.getElementById('ramBarFill');
+    if (fill) fill.style.width = pct + '%';
+}
+
+function tempClass(t) {
+    const n = parseFloat(t);
+    if (isNaN(n) || t === '-') return '';
+    return n >= 60 ? 'temp-hot' : n >= 50 ? 'temp-warn' : 'temp-ok';
+}
+
+function updateDisks(disks) {
+    if (!Array.isArray(disks)) return;
+    const tbody = document.getElementById('diskTableBody');
+    if (!tbody) return;
+    if (!disks.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="padding:14px;color:#6b7280;font-size:13px;">Sin discos detectados</td></tr>';
+        return;
+    }
+    tbody.innerHTML = disks.map((d, i) => {
+        const stClass = (d.status||'').includes('Bueno') ? 'good' : (d.status||'').includes('recauci') ? 'warn' : 'bad';
+        const tc = tempClass(d.temperature);
+        const usedStr = d.used_gb ? d.used_gb.toFixed(1) + ' GB (' + Math.round(d.used_pct) + '%)' : '-';
+        const tempStr = d.temperature && d.temperature !== '-' ? d.temperature + ' °C' : '-';
+        return `<tr>
+            <td>Disco ${i}</td><td>${d.model||'-'}</td><td>${d.type||'-'}</td>
+            <td>${d.capacity_gb ? d.capacity_gb.toFixed(1)+' GB' : '-'}</td>
+            <td>${usedStr}</td>
+            <td><span class="status-badge ${stClass}">${d.status||'-'}</span></td>
+            <td class="${tc}">${tempStr}</td>
+        </tr>`;
+    }).join('');
+}
+
+function updateGPU(gpus) {
+    if (!Array.isArray(gpus)) return;
+    const tbody = document.getElementById('gpuTableBody');
+    if (!tbody) return;
+    if (!gpus.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:14px;color:#6b7280;font-size:13px;">Sin GPU detectada</td></tr>';
+        return;
+    }
+    tbody.innerHTML = gpus.map((g, i) => `<tr>
+        <td>GPU ${i}</td><td>${g.model||'-'}</td><td>${g.memory||'-'}</td>
+        <td>${g.vendor||'-'}</td><td>${g.driver_version||'-'}</td>
+    </tr>`).join('');
+}
+
+function updateMotherboard(data) {
+    if (!data || !Object.keys(data).length) return;
+    setText('mbModel',        data.model        || '-');
+    setText('mbManufacturer', data.manufacturer || '-');
+    setText('mbVersion',      data.version      || '-');
+    setText('mbChipset',      data.chipset      || '-');
+    setText('mbDate',         data.date         || '-');
+    setText('mbBios',         data.bios         || '-');
+}
+
+function updateDevices(devices) {
+    if (!Array.isArray(devices)) return;
+    const list = document.getElementById('devicesList');
+    if (!list) return;
+    if (!devices.length) {
+        list.innerHTML = '<div class="device-row"><span class="device-type" style="color:#6b7280">Sin dispositivos</span></div>';
+        return;
+    }
+    list.innerHTML = devices.map(d => `<div class="device-row">
+        <span class="device-type">${d.type||'-'}</span>
+        <span class="device-name">${d.name||'-'}</span>
+    </div>`).join('');
+}
+
+function applySnapshot(snap) {
+    updateSysResumen(snap.system      || {});
+    updateCPU(       snap.cpu         || {});
+    updateMemory(    snap.memory      || {});
+    updateDisks(     snap.disks       || []);
+    updateGPU(       snap.gpu         || []);
+    updateMotherboard(snap.motherboard|| {});
+    updateDevices(   snap.devices     || []);
+}
+
+// ── load from DB on page open ─────────────────────────────────────────────────
+async function loadFromDB() {
+    const snap = await safeFetch('/api/hardware/snapshot');
+    if (!snap || snap.empty) {
+        setText('lastUpdate', 'Sin datos — pulse "Actualizar ahora"');
+        return;
+    }
+    applySnapshot(snap);
+    setText('lastUpdate', fmtTs(snap.timestamp));
+}
+
+// ── refresh all from PowerShell (button click only) ───────────────────────────
+async function refreshFromLive() {
+    const btn = document.getElementById('refreshBtn');
+    if (btn) btn.classList.add('loading');
+    setText('lastUpdate', 'Actualizando…');
+
+    const snap = await safeFetch('/api/hardware/refresh' + mq('?'), { method: 'POST' });
+    if (snap) {
+        applySnapshot(snap);
+        setText('lastUpdate', nowStr());
+    } else {
+        setText('lastUpdate', 'Error al actualizar');
+    }
+    if (btn) btn.classList.remove('loading');
+}
+
+// ── RAM bar: live every 30 s (only updates usage, not static fields) ──────────
+async function refreshRamBar() {
+    const data = await safeFetch('/api/hardware/memory/live');
+    updateRamBar(data);
+}
+setInterval(refreshRamBar, 30000);
+
+// ── sidebar persistence ───────────────────────────────────────────────────────
+(function () {
+    const sidebar = document.getElementById('sidebar');
+    if (localStorage.getItem('sidebarCollapsed') === 'true') sidebar?.classList.add('collapsed');
+    document.getElementById('sidebarToggle')?.addEventListener('click', () => {
+        sidebar?.classList.toggle('collapsed');
+        localStorage.setItem('sidebarCollapsed', sidebar?.classList.contains('collapsed') ? 'true' : 'false');
+    });
+})();
+
+document.getElementById('refreshBtn')?.addEventListener('click', refreshFromLive);
+
+window.addEventListener('machineChanged', loadFromDB);
+
+loadFromDB();
+</script>
+<script src="{{ url_for('static', filename='js/profile_modal.js') }}"></script>
+<script src="{{ url_for('static', filename='js/csrf.js') }}"></script>
+<script>
+async function _openExpModal(fmt) {
+    document.getElementById('exportDropdown')?.classList.remove('open');
+    const modal = document.getElementById('exportMachinesModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    const fmtRadio = document.querySelector(`input[name="expFmt"][value="${fmt}"]`);
+    if (fmtRadio) fmtRadio.checked = true;
+    const listEl = document.getElementById('exportMachinesList');
+    listEl.innerHTML = '<div style="padding:10px;font-size:13px">Cargando máquinas...</div>';
+    try {
+        const r = await fetch('/api/machines');
+        const machines = await r.json();
+        const currentMid = localStorage.getItem('ms_machine_id') || '';
+        if (!machines || machines.length === 0) {
+            listEl.innerHTML = '<div style="padding:10px;font-size:13px">No hay máquinas registradas</div>';
+            return;
+        }
+        listEl.innerHTML = machines.map(m => `
+            <label class="hw-export-row">
+                <input type="checkbox" class="hw-export-mid" value="${m.id}" ${String(m.id) === String(currentMid) ? 'checked' : ''}>
+                <span class="hw-export-name">${m.name}</span>
+                <span class="hw-export-addr">${m.ip}:${m.port}</span>
+            </label>
+        `).join('');
+        const allCb = document.getElementById('expSelectAll');
+        if (allCb) {
+            const checked = document.querySelectorAll('.hw-export-mid:checked').length;
+            allCb.checked = (checked === machines.length);
+        }
+    } catch {
+        listEl.innerHTML = '<div style="padding:10px;color:#f85149;font-size:13px">Error al cargar máquinas</div>';
+    }
+}
+
+function _closeExpModal() {
+    const modal = document.getElementById('exportMachinesModal');
+    if (modal) modal.style.display = 'none';
+}
+
+document.addEventListener('change', e => {
+    if (e.target.id === 'expSelectAll') {
+        document.querySelectorAll('.hw-export-mid').forEach(cb => { cb.checked = e.target.checked; });
+    } else if (e.target.classList.contains('hw-export-mid')) {
+        const all  = document.querySelectorAll('.hw-export-mid');
+        const chk  = document.querySelectorAll('.hw-export-mid:checked');
+        const allCb = document.getElementById('expSelectAll');
+        if (allCb) allCb.checked = (all.length > 0 && chk.length === all.length);
+    }
+});
+
+function _doMultiExport() {
+    const fmt  = document.querySelector('input[name="expFmt"]:checked')?.value || 'xlsx';
+    const mids = Array.from(document.querySelectorAll('.hw-export-mid:checked')).map(cb => cb.value);
+    if (mids.length === 0) { alert('Selecciona al menos una máquina para exportar.'); return; }
+    const qs = [`format=${fmt}`, ...mids.map(id => `machine_id=${encodeURIComponent(id)}`)].join('&');
+    window.open(`/api/export/hardware?${qs}`, '_blank');
+    _closeExpModal();
+}
+</script>
+
+<style>
+.hw-export-modal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 2000;
+    align-items: flex-start; justify-content: center;
+}
+.hw-export-content {
+    background: #fff; border-radius: 10px;
+    width: 480px; max-width: 92%; margin-top: 8vh;
+    max-height: 80vh; display: flex; flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2); overflow: hidden;
+}
+.hw-export-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid #e5e7eb;
+    font-size: 15px; font-weight: 600; color: #1f2937;
+}
+.hw-export-close {
+    background: none; border: none; font-size: 18px;
+    color: #6b7280; cursor: pointer; padding: 4px 8px; line-height: 1;
+}
+.hw-export-close:hover { color: #1f2937; }
+.hw-export-body { padding: 14px 18px; overflow-y: auto; flex: 1; }
+.hw-export-section-title {
+    font-size: 11px; font-weight: 700; color: #6b7280;
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px;
+}
+.hw-export-list {
+    display: flex; flex-direction: column; gap: 2px;
+    max-height: 240px; overflow-y: auto;
+    border: 1px solid #e5e7eb; border-radius: 6px;
+    padding: 4px; background: #fafafa;
+}
+.hw-export-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 9px; font-size: 13px; color: #1f2328;
+    cursor: pointer; border-radius: 4px;
+}
+.hw-export-row:hover { background: #f0f4fb; }
+.hw-export-row input { cursor: pointer; flex-shrink: 0; }
+.hw-export-name { font-weight: 500; flex: 1; }
+.hw-export-addr { color: #6b7280; font-size: 12px; font-family: monospace; }
+.hw-export-all { background: #eaf2ff; margin-bottom: 4px; }
+.hw-export-footer {
+    display: flex; justify-content: flex-end; gap: 8px;
+    padding: 12px 18px; border-top: 1px solid #e5e7eb; background: #fafafa;
+}
+.hw-btn {
+    padding: 7px 16px; border: 1px solid #d1d5db; background: #fff;
+    border-radius: 6px; font-size: 13px; cursor: pointer;
+    color: #1f2328; font-family: inherit; transition: background 0.12s;
+}
+.hw-btn:hover { background: #f3f4f6; }
+.hw-btn-primary { background: #0A67DC; color: #fff; border-color: #0855b8; }
+.hw-btn-primary:hover { background: #0855b8; }
+</style>
+
+<div id="exportMachinesModal" class="hw-export-modal" onclick="if(event.target===this)_closeExpModal()">
+    <div class="hw-export-content">
+        <div class="hw-export-header">
+            <span>Exportar informe de hardware</span>
+            <button class="hw-export-close" onclick="_closeExpModal()">✕</button>
+        </div>
+        <div class="hw-export-body">
+            <div class="hw-export-section-title">Máquinas a exportar</div>
+            <label class="hw-export-row hw-export-all">
+                <input type="checkbox" id="expSelectAll">
+                <span class="hw-export-name">Seleccionar todas</span>
+            </label>
+            <div id="exportMachinesList" class="hw-export-list">
+                <div style="padding:10px;font-size:13px">Cargando...</div>
+            </div>
+            <div class="hw-export-section-title" style="margin-top:16px">Formato</div>
+            <label class="hw-export-row">
+                <input type="radio" name="expFmt" value="xlsx" checked>
+                <span class="hw-export-name">Excel (.xlsx)</span>
+            </label>
+            <label class="hw-export-row">
+                <input type="radio" name="expFmt" value="pdf">
+                <span class="hw-export-name">PDF</span>
+            </label>
+        </div>
+        <div class="hw-export-footer">
+            <button class="hw-btn" onclick="_closeExpModal()">Cancelar</button>
+            <button class="hw-btn hw-btn-primary" onclick="_doMultiExport()">Exportar</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="{{ current_user.language if current_user.is_authenticated else 'es' }}" data-theme="{{ current_user.theme if current_user.is_authenticated else 'light' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Control Remoto para Windows - Configuración de Red</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vista_general.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/red.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile_modal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}">
+</head>
+<body data-user-role="{{ current_user.role }}">
+<div class="vg-wrapper">
+
+    <!-- HEADER -->
+    <header class="vg-header">
+        <div class="header-left">
+            <button class="hamburger" id="sidebarToggle" title="Mostrar/ocultar menú">
+                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            </button>
+            <span class="title">Control Remoto para Windows - Configuración de Red</span>
+        </div>
+        <div class="header-right">
+            <div id="machine-selector-host"></div>
+            <div class="user-info-header">
+                <button class="user-profile-trigger" onclick="openProfileModal()" title="Editar perfil">
+                    <span class="hdr-avatar" id="hdrAvatar" data-color="{{ current_user.avatar_color or '#0A67DC' }}">{{ (current_user.full_name or current_user.username)[:1].upper() }}</span>
+                    <span id="hdrUsername">{{ current_user.full_name or current_user.username }}</span>
+                    <span class="user-role-tag">{{ current_user.role }}</span>
+                </button>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn" data-i18n="header.logout">Cerrar sesión</a>
+            </div>
+            <div class="conn-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="#38B000" stroke="#38B000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>
+                <span id="connLabel" data-i18n="header.connected">CONECTADO</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="vg-body">
+
+        <!-- SIDEBAR -->
+        <nav class="vg-sidebar" id="sidebar">
+            <ul class="nav-list">
+                <li>
+                    <a href="{{ url_for('index') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        <span class="nav-label" data-i18n="nav.overview">Vista General</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('rendimiento_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        <span class="nav-label" data-i18n="nav.performance">Rendimiento</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('hardware_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                        <span class="nav-label" data-i18n="nav.hardware">Hardware</span>
+                    </a>
+                </li>
+{% if current_user.role in ['superadmin', 'admin'] %}
+                <li class="nav-bottom">
+                    <a href="{{ url_for('auth.usuarios_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        <span class="nav-label" data-i18n="nav.users">Usuarios y Permisos</span>
+                    </a>
+                </li>
+                {% endif %}
+                <li>
+                    <a href="{{ url_for('particiones_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></svg>
+                        <span class="nav-label" data-i18n="nav.partitions">Particiones de Disco</span>
+                    </a>
+                </li>
+                <li class="active">
+                    <a href="{{ url_for('red_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg>
+                        <span class="nav-label" data-i18n="nav.network">Configuración de Red</span>
+                    </a>
+                </li>
+                {% if current_user.role in ['superadmin', 'admin'] %}
+                <li class="nav-bottom">
+                    <a href="{{ url_for('auth.registros_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>
+                        <span class="nav-label" data-i18n="nav.logs">Registros del Sistema</span>
+                    </a>
+                </li>
+                {% endif %}
+<li>
+                    <a href="{{ url_for('backup_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        <span class="nav-label" data-i18n="nav.backup">Copias de Seguridad</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('monitorizacion_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                        <span class="nav-label" data-i18n="nav.monitoring">Monitorización</span>
+                    </a>
+                </li>
+</ul>
+
+            <div class="sidebar-machine">
+                <svg class="machine-icon-svg" xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                <div class="machine-details">
+                    <div class="machine-name" id="sidebarHostname">-</div>
+                    <div id="sidebarOS">-</div>
+                    <div id="sidebarVersion">-</div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- MAIN CONTENT -->
+        <main class="vg-main">
+            <div class="page-title" data-i18n="page.network">Configuración de Red</div>
+
+            <!-- SUMMARY CARDS -->
+            <div class="rd-summary-grid">
+                <div class="rd-summary-card">
+                    <div class="rd-icon-wrap green">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2EA043" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    </div>
+                    <div class="rd-card-body">
+                        <div class="rd-card-label">Estado de red</div>
+                        <div class="rd-card-value green" id="rdStatusLabel">—</div>
+                        <div class="rd-card-sub" id="rdStatusSub">Comprobando...</div>
+                    </div>
+                </div>
+                <div class="rd-summary-card">
+                    <div class="rd-icon-wrap blue">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0A67DC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    </div>
+                    <div class="rd-card-body">
+                        <div class="rd-card-label">Dirección IP</div>
+                        <div class="rd-card-value blue" id="rdIPLabel">—</div>
+                        <div class="rd-card-sub" id="rdIPSub">IPv4 principal</div>
+                    </div>
+                </div>
+                <div class="rd-summary-card">
+                    <div class="rd-icon-wrap purple">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>
+                    </div>
+                    <div class="rd-card-body">
+                        <div class="rd-card-label">DNS</div>
+                        <div class="rd-card-value purple" id="rdDNSLabel">—</div>
+                        <div class="rd-card-sub">Servidor principal</div>
+                    </div>
+                </div>
+                <div class="rd-summary-card">
+                    <div class="rd-icon-wrap teal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/><circle cx="12" cy="12" r="4"/></svg>
+                    </div>
+                    <div class="rd-card-body">
+                        <div class="rd-card-label">Velocidad</div>
+                        <div class="rd-card-value teal" id="rdSpeedLabel">—</div>
+                        <div class="rd-card-sub" id="rdSpeedSub">Enlace activo</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROW: Adaptadores | Detalles -->
+            <div class="rd-grid-main">
+
+                <!-- Adaptadores de Red -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="4" rx="1"/><rect x="15" y="14" width="6" height="4" rx="1"/><rect x="3" y="14" width="6" height="4" rx="1"/><path d="M6 18v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2"/><path d="M12 6v4"/><path d="M12 10H6a2 2 0 0 0-2 2v2"/><path d="M12 10h6a2 2 0 0 1 2 2v2"/></svg>
+                        Adaptadores de Red
+                    </div>
+                    <table class="rd-adapter-table">
+                        <thead>
+                            <tr>
+                                <th>Adaptador</th>
+                                <th>Tipo</th>
+                                <th>Estado</th>
+                                <th>Dirección IP</th>
+                                <th>Velocidad</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adaptersTableBody">
+                            <tr><td colspan="5" class="rd-empty">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Detalles del Adaptador -->
+                <div class="panel">
+                    <div class="panel-header" id="rdDetailsTitle">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                        Detalles del Adaptador
+                    </div>
+                    <div style="padding:10px 0;margin:12px
+                    ;">
+                        <table class="rd-info-table">
+                            <tbody>
+                                <tr><td class="rd-info-key">Dirección MAC</td><td class="rd-info-val" id="rdDetailMAC">—</td></tr>
+                                <tr><td class="rd-info-key">Puerta de enlace</td><td class="rd-info-val" id="rdDetailGateway">—</td></tr>
+                                <tr><td class="rd-info-key">Máscara de subred</td><td class="rd-info-val" id="rdDetailSubnet">—</td></tr>
+                                <tr><td class="rd-info-key">DNS preferido</td><td class="rd-info-val" id="rdDetailDNS1">—</td></tr>
+                                <tr><td class="rd-info-key">DNS alternativo</td><td class="rd-info-val" id="rdDetailDNS2">—</td></tr>
+                                <tr><td class="rd-info-key">DHCP</td><td class="rd-info-val" id="rdDetailDHCP">—</td></tr>
+                                <tr><td class="rd-info-key">Estado</td><td class="rd-info-val" id="rdDetailStatus">—</td></tr>
+                                <tr><td class="rd-info-key">Velocidad</td><td class="rd-info-val" id="rdDetailSpeed">—</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROW: Estadísticas | Herramientas -->
+            <div class="rd-grid-mid">
+
+                <!-- Estadísticas de Red -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        <span id="rdStatsTitle">Estadísticas de Red</span>
+                    </div>
+                    <div class="rd-stats-grid">
+                        <div class="rd-stat-box">
+                            <div class="rd-stat-label">Total Enviado</div>
+                            <div class="rd-stat-value" id="rdStatSent">—</div>
+                            <canvas class="rd-sparkline" id="sparklineSent"></canvas>
+                        </div>
+                        <div class="rd-stat-box">
+                            <div class="rd-stat-label">Total Recibido</div>
+                            <div class="rd-stat-value green" id="rdStatRecv">—</div>
+                            <canvas class="rd-sparkline" id="sparklineRecv"></canvas>
+                        </div>
+                        <div class="rd-stat-box">
+                            <div class="rd-stat-label">Paquetes enviados/s</div>
+                            <div class="rd-stat-value purple" id="rdStatSentPkt">—</div>
+                            <canvas class="rd-sparkline" id="sparklineSentPkt"></canvas>
+                        </div>
+                        <div class="rd-stat-box">
+                            <div class="rd-stat-label">Paquetes recibidos/s</div>
+                            <div class="rd-stat-value" style="color:#f59e0b" id="rdStatRecvPkt">—</div>
+                            <canvas class="rd-sparkline" id="sparklineRecvPkt"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Herramientas de Red -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                        Herramientas de Red
+                    </div>
+                    <div class="rd-tools-grid">
+                        {% if current_user.role in ['superadmin', 'admin', 'operador'] %}
+                        <button class="rd-tool-btn" onclick="openToolModal('ping')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            Ping
+                        </button>
+                        <button class="rd-tool-btn" onclick="openToolModal('traceroute')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                            Traceroute
+                        </button>
+                        <button class="rd-tool-btn" onclick="openToolModal('ipconfig')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                            ipconfig /all
+                        </button>
+                        <button class="rd-tool-btn" onclick="openToolModal('netstat')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+                            Netstat
+                        </button>
+                        {% endif %}
+                        {% if current_user.role in ['superadmin', 'admin'] %}
+                        <button class="rd-tool-btn" onclick="openToolModal('release_renew')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                            Liberar /<br>Renovar IP
+                        </button>
+                        <button class="rd-tool-btn" onclick="openToolModal('flush_dns')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>
+                            Flush DNS
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- ROW: Actividad | Alertas -->
+            <div class="rd-grid-bottom">
+
+                <!-- Actividad reciente -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Actividad reciente
+                    </div>
+                    <div class="rd-activity-list" id="activityList">
+                        <div class="rd-activity-item">
+                            <div class="rd-activity-icon rd-act-info">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                            </div>
+                            <div class="rd-activity-body">
+                                <div class="rd-activity-msg">Cargando actividad...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alertas y seguridad -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+                        Alertas y seguridad
+                    </div>
+                    <div class="rd-alerts-list" id="alertsList">
+                        <div class="rd-alert-row">
+                            <div class="rd-alert-icon rd-act-info">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                            </div>
+                            <span class="rd-alert-msg">Cargando alertas...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="vg-footer">
+        <div class="footer-left">
+            <span><span data-i18n="footer.lastUpdate">Última actualización:</span> <span id="lastUpdate">--</span></span>
+            <button class="rd-refresh-btn" id="refreshBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="spin-icon"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                <span data-i18n="footer.refreshNow">Actualizar ahora</span>
+            </button>
+        </div>
+        <div class="footer-right">
+            <div class="export-dropdown" id="exportDropdown">
+                <button class="export-btn" onclick="_expToggle()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    Exportar
+                </button>
+                <div class="export-menu">
+                    <div class="export-menu-label">Red</div>
+                    <button class="export-menu-item" onclick="_exp('red','xlsx')">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                        Excel (.xlsx)
+                    </button>
+                    <button class="export-menu-item" onclick="_exp('red','pdf')">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        PDF
+                    </button>
+                </div>
+            </div>
+            <span data-i18n="footer.timezone">Zona horaria:</span>
+            <span>(UTC+02:00) Madrid</span>
+            <span class="tz-caret">▾</span>
+        </div>
+    </footer>
+
+</div>
+
+<!-- TOOL MODAL -->
+<div class="rd-modal" id="toolModal" style="display:none" onclick="if(event.target===this)closeToolModal()">
+    <div class="rd-modal-box">
+        <div class="rd-modal-header">
+            <span id="toolModalTitle">Herramienta de Red</span>
+            <button class="rd-modal-close" onclick="closeToolModal()">✕</button>
+        </div>
+        <div class="rd-modal-body">
+            <div class="rd-target-row" id="toolTargetRow" style="display:none">
+                <input type="text" id="toolTargetInput" class="rd-target-input" placeholder="Dirección IP o nombre de host (ej: 8.8.8.8)">
+                <button class="rd-run-btn" onclick="runCurrentTool()">Ejecutar</button>
+            </div>
+            <pre class="rd-output" id="toolOutput">Listo para ejecutar...</pre>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+<script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+<script src="{{ url_for('static', filename='js/machine_selector.js') }}?v=13"></script>
+<script src="{{ url_for('static', filename='js/sidebar_info.js') }}"></script>
+<script>
+// ── helpers ───────────────────────────────────────────────────────────────────
+function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+}
+
+function nowStr() {
+    const d = new Date();
+    return [d.getDate(), d.getMonth()+1, d.getFullYear()].map(n=>String(n).padStart(2,'0')).join('/') + ' ' +
+           [d.getHours(), d.getMinutes(), d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
+}
+
+function mq(sep) { return window.MS ? window.MS.machineQuery(sep) : ''; }
+
+async function safeFetch(url, opts) {
+    try {
+        const sep = url.includes('?') ? '&' : '?';
+        const r = await fetch(url + (opts ? '' : mq(sep)), opts);
+        if (!r.ok) throw new Error(r.status);
+        return await r.json();
+    } catch { return null; }
+}
+
+function fmtBytes(mb) {
+    if (mb === undefined || mb === null) return '—';
+    const n = parseFloat(mb);
+    if (isNaN(n)) return '—';
+    if (n >= 1024) return (n / 1024).toFixed(1) + ' GB';
+    return n.toFixed(1) + ' MB';
+}
+
+function fmtNum(n) {
+    const v = parseInt(n);
+    if (isNaN(v)) return '—';
+    return v.toLocaleString('es-ES');
+}
+
+// ── sparkline drawing ─────────────────────────────────────────────────────────
+function drawSparkline(canvasId, data, color) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const w = rect.width || canvas.offsetWidth || 160;
+    const h = rect.height || canvas.offsetHeight || 60;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    const max = Math.max(...data, 1);
+    const pts = data.map((v, i) => ({
+        x: (i / (data.length - 1)) * w,
+        y: h - (v / max) * (h - 8) - 4
+    }));
+
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.moveTo(pts[0].x, pts[0].y);
+
+    const tension = 0.4;
+    for (let i = 1; i < pts.length; i++) {
+        const p0 = pts[Math.max(0, i - 2)];
+        const p1 = pts[i - 1];
+        const p2 = pts[i];
+        const p3 = pts[Math.min(pts.length - 1, i + 1)];
+        const cp1x = p1.x + (p2.x - p0.x) * tension / 2;
+        const cp1y = p1.y + (p2.y - p0.y) * tension / 2;
+        const cp2x = p2.x - (p3.x - p1.x) * tension / 2;
+        const cp2y = p2.y - (p3.y - p1.y) * tension / 2;
+        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+    }
+
+    ctx.stroke();
+    ctx.lineTo(pts[pts.length - 1].x, h);
+    ctx.lineTo(pts[0].x, h);
+    ctx.closePath();
+    ctx.fillStyle = color + '28';
+    ctx.fill();
+}
+
+// ── sessionStorage cache ──────────────────────────────────────────────────────
+function cSave(key, value) {
+    try { sessionStorage.setItem('rd_' + key, JSON.stringify(value)); } catch {}
+}
+function cLoad(key) {
+    try { const v = sessionStorage.getItem('rd_' + key); return v ? JSON.parse(v) : null; } catch { return null; }
+}
+function cClear() {
+    ['adapters','stats','activity','alerts','selected','last_update','sparklines']
+        .forEach(k => { try { sessionStorage.removeItem('rd_' + k); } catch {} });
+    // clear per-adapter detail caches
+    try {
+        Object.keys(sessionStorage).filter(k => k.startsWith('rd_detail_'))
+            .forEach(k => sessionStorage.removeItem(k));
+    } catch {}
+}
+
+// ── state ─────────────────────────────────────────────────────────────────────
+let adaptersData = [];
+let selectedAdapterName = null;
+const statsHist = {
+    sent:    new Array(20).fill(0),
+    recv:    new Array(20).fill(0),
+    sentPkt: new Array(20).fill(0),
+    recvPkt: new Array(20).fill(0),
+};
+// For packets/second calculation
+let _prevStats = null;   // { name → {tx_packets, rx_packets} }
+let _prevStatsTs = null; // timestamp of previous measurement (ms)
+
+// ── adapters ──────────────────────────────────────────────────────────────────
+function dotClass(status) {
+    if (!status) return 'gray';
+    if (status === 'Conectado') return 'green';
+    if (status === 'Inactivo') return 'yellow';
+    return 'red';
+}
+
+function renderAdapters() {
+    const tbody = document.getElementById('adaptersTableBody');
+    if (!tbody) return;
+    if (!adaptersData.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="rd-empty">Sin adaptadores detectados</td></tr>';
+        return;
+    }
+    tbody.innerHTML = adaptersData.map(a => {
+        const dc = dotClass(a.status);
+        const sel = selectedAdapterName === a.name ? 'selected' : '';
+        const name = a.name || '—';
+        const ip   = a.ip && a.ip !== '-' ? a.ip : '—';
+        const spd  = a.speed && a.speed !== '-' ? a.speed : '—';
+        const safeName = name.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+        return `<tr class="${sel}" data-aname="${safeName}">
+            <td><strong>${name}</strong></td>
+            <td class="rd-adapter-type">${a.type || '—'}</td>
+            <td><span class="rd-status-dot ${dc}"></span>${a.status || '—'}</td>
+            <td>${ip}</td>
+            <td>${spd}</td>
+        </tr>`;
+    }).join('');
+}
+
+function updateSummaryCards() {
+    const connected = adaptersData.find(a => a.status === 'Conectado');
+    if (connected) {
+        setText('rdStatusLabel', 'Conectado');
+        setText('rdStatusSub', 'Internet disponible');
+        document.getElementById('rdStatusLabel').style.color = '#2EA043';
+        setText('rdIPLabel', (connected.ip && connected.ip !== '-') ? connected.ip : '—');
+        setText('rdSpeedLabel', (connected.speed && connected.speed !== '-') ? connected.speed : '—');
+    } else {
+        setText('rdStatusLabel', 'Desconectado');
+        setText('rdStatusSub', 'Sin conexión activa');
+        document.getElementById('rdStatusLabel').style.color = '#dc2626';
+        setText('rdIPLabel', '—');
+        setText('rdSpeedLabel', '—');
+    }
+}
+
+async function loadAdapters(force) {
+    let data = !force ? cLoad('adapters') : null;
+    if (!data) {
+        data = await safeFetch('/api/red/adapters');
+        if (data) cSave('adapters', data);
+    }
+    if (!data) return;
+    // Solo filtrar la fila de error explícita del catch de PowerShell
+    const SKIP = ['Error', 'Sin adaptadores detectados', 'Error al obtener adaptadores'];
+    adaptersData = (data.adapters || []).filter(a => a.name && !SKIP.includes(a.name));
+    renderAdapters();
+    updateSummaryCards();
+    const saved = cLoad('selected');
+    const target = (saved && adaptersData.find(a => a.name === saved))
+        ? saved
+        : (adaptersData.find(a => a.status === 'Conectado') || adaptersData[0])?.name;
+    // No await — carga detalles en background sin bloquear la página
+    if (target && target !== selectedAdapterName) selectAdapter(target, force);
+}
+
+async function selectAdapter(name, force) {
+    selectedAdapterName = name;
+    cSave('selected', name);
+    renderAdapters();
+    const hdr = document.getElementById('rdDetailsTitle');
+    if (hdr) hdr.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg> Detalles del Adaptador (${name})`;
+    setText('rdStatsTitle', `Estadísticas de Red (${name})`);
+    const cKey = 'detail_' + name;
+    let details = !force ? cLoad(cKey) : null;
+    if (!details) {
+        details = await safeFetch(`/api/red/adapter_details?adapter=${encodeURIComponent(name)}`);
+        if (details) cSave(cKey, details);
+    }
+    if (!details) return;
+    setText('rdDetailMAC',     details.mac           || '—');
+    setText('rdDetailGateway', details.gateway       || '—');
+    setText('rdDetailSubnet',  details.subnet        || '—');
+    setText('rdDetailDNS1',    details.dns_primary   || '—');
+    setText('rdDetailDNS2',    details.dns_secondary || '—');
+    setText('rdDetailDHCP',    details.dhcp          || '—');
+    setText('rdDetailStatus',  details.status        || '—');
+    setText('rdDetailSpeed',   details.speed         || '—');
+    if (details.dns_primary && details.dns_primary !== '-') {
+        setText('rdDNSLabel', details.dns_primary);
+    }
+}
+
+// ── network stats ─────────────────────────────────────────────────────────────
+function applyStats(data) {
+    if (!data || !data.stats || !data.stats.length) return;
+    const s = selectedAdapterName
+        ? (data.stats.find(r => r.name === selectedAdapterName) || data.stats[0])
+        : data.stats[0];
+    if (!s) return;
+    const sentMB  = parseFloat(s.tx_mb) || 0;
+    const recvMB  = parseFloat(s.rx_mb) || 0;
+    const sentPktTotal = parseInt(s.tx_packets) || 0;
+    const recvPktTotal = parseInt(s.rx_packets) || 0;
+
+    setText('rdStatSent', fmtBytes(sentMB));
+    setText('rdStatRecv', fmtBytes(recvMB));
+
+    // Compute packets/second using delta from previous measurement
+    const now = Date.now();
+    let sentPktRate = null, recvPktRate = null;
+    if (_prevStats && _prevStatsTs && _prevStats[s.name]) {
+        const elapsed = (now - _prevStatsTs) / 1000;
+        if (elapsed > 0) {
+            const dSent = Math.max(0, sentPktTotal - (_prevStats[s.name].tx || 0));
+            const dRecv = Math.max(0, recvPktTotal - (_prevStats[s.name].rx || 0));
+            sentPktRate = Math.round(dSent / elapsed);
+            recvPktRate = Math.round(dRecv / elapsed);
+        }
+    }
+    setText('rdStatSentPkt', sentPktRate !== null ? sentPktRate.toLocaleString('es-ES') + ' /s' : '—');
+    setText('rdStatRecvPkt', recvPktRate !== null ? recvPktRate.toLocaleString('es-ES') + ' /s' : '—');
+
+    // Save current as previous for next call
+    if (!_prevStats) _prevStats = {};
+    _prevStats[s.name] = { tx: sentPktTotal, rx: recvPktTotal };
+    _prevStatsTs = now;
+
+    statsHist.sent.push(sentMB);   statsHist.sent.shift();
+    statsHist.recv.push(recvMB);   statsHist.recv.shift();
+    statsHist.sentPkt.push(sentPktRate ?? 0); statsHist.sentPkt.shift();
+    statsHist.recvPkt.push(recvPktRate ?? 0); statsHist.recvPkt.shift();
+
+    cSave('sparklines', statsHist);
+    drawSparkline('sparklineSent',    statsHist.sent,    '#0A67DC');
+    drawSparkline('sparklineRecv',    statsHist.recv,    '#2EA043');
+    drawSparkline('sparklineSentPkt', statsHist.sentPkt, '#7C3AED');
+    drawSparkline('sparklineRecvPkt', statsHist.recvPkt, '#f59e0b');
+}
+
+async function loadStats(force) {
+    let data = !force ? cLoad('stats') : null;
+    if (!data) {
+        data = await safeFetch('/api/red/stats');
+        if (data) cSave('stats', data);
+    }
+    applyStats(data);  // pkt/s mostrará '—' hasta el segundo poll (15s)
+}
+
+// ── activity ──────────────────────────────────────────────────────────────────
+function actIcon(type) {
+    const cls = type === 'error' ? 'rd-act-error' : type === 'warning' ? 'rd-act-warning' : 'rd-act-info';
+    if (type === 'error')   return `<svg class="${cls}" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>`;
+    if (type === 'warning') return `<svg class="${cls}" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>`;
+    return `<svg class="${cls}" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`;
+}
+
+async function loadActivity(force) {
+    let data = !force ? cLoad('activity') : null;
+    if (!data) {
+        data = await safeFetch('/api/red/activity');
+        if (data) cSave('activity', data);
+    }
+    const list = document.getElementById('activityList');
+    if (!list) return;
+    const events = (data && data.events) ? data.events : [];
+    if (!events.length) {
+        list.innerHTML = '<div class="rd-activity-item"><div class="rd-activity-body"><div class="rd-activity-msg" style="color:#9ca3af">Sin actividad reciente</div></div></div>';
+        return;
+    }
+    list.innerHTML = events.map(e => `
+        <div class="rd-activity-item">
+            <div class="rd-activity-icon">${actIcon(e.type)}</div>
+            <div class="rd-activity-body">
+                <div class="rd-activity-msg">${e.message || e.source || '—'}</div>
+                <div class="rd-activity-meta">${e.time || ''} · ${e.source || ''}</div>
+            </div>
+        </div>`).join('');
+}
+
+// ── alerts ────────────────────────────────────────────────────────────────────
+function alertIcon(status) {
+    if (status === 'ok')      return `<svg class="rd-act-ok" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
+    if (status === 'warning') return `<svg class="rd-act-warning" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>`;
+    return `<svg class="rd-act-info" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`;
+}
+
+async function loadAlerts(force) {
+    let data = !force ? cLoad('alerts') : null;
+    if (!data) {
+        data = await safeFetch('/api/red/alerts');
+        if (data) cSave('alerts', data);
+    }
+    const list = document.getElementById('alertsList');
+    if (!list) return;
+    const alerts = (data && data.alerts) ? data.alerts : [];
+    if (!alerts.length) {
+        list.innerHTML = '<div class="rd-alert-row"><span class="rd-alert-msg" style="color:#9ca3af">Sin alertas</span></div>';
+        return;
+    }
+    list.innerHTML = alerts.map(a => {
+        let badgeHtml = '';
+        if (a.badge && a.badge !== 'info' && a.badge !== 'warning' && a.badge !== '') {
+            const cls = a.status === 'ok' ? 'rd-badge-active' : 'rd-badge-warning';
+            badgeHtml = `<span class="rd-alert-badge ${cls}">${a.badge}</span>`;
+        }
+        return `<div class="rd-alert-row">
+            <div class="rd-alert-icon">${alertIcon(a.status)}</div>
+            <span class="rd-alert-msg">${a.message}</span>
+            ${badgeHtml}
+        </div>`;
+    }).join('');
+}
+
+// ── tool modal ────────────────────────────────────────────────────────────────
+const toolTitles = {
+    ping:          'Ping',
+    traceroute:    'Traceroute',
+    ipconfig:      'ipconfig /all',
+    netstat:       'Netstat — Conexiones TCP activas',
+    release_renew: 'Liberar / Renovar IP',
+    flush_dns:     'Vaciar Caché DNS',
+};
+const toolsWithTarget = ['ping', 'traceroute'];
+let currentTool = null;
+
+function openToolModal(tool) {
+    currentTool = tool;
+    setText('toolModalTitle', toolTitles[tool] || tool);
+    const targetRow = document.getElementById('toolTargetRow');
+    const output = document.getElementById('toolOutput');
+    if (targetRow) targetRow.style.display = toolsWithTarget.includes(tool) ? 'flex' : 'none';
+    if (output) output.textContent = 'Listo para ejecutar...';
+    const input = document.getElementById('toolTargetInput');
+    if (input) input.value = '';
+    document.getElementById('toolModal').style.display = 'flex';
+    if (!toolsWithTarget.includes(tool)) runCurrentTool();
+    else if (input) input.focus();
+}
+
+function closeToolModal() {
+    document.getElementById('toolModal').style.display = 'none';
+    currentTool = null;
+}
+
+async function runCurrentTool() {
+    if (!currentTool) return;
+    const target = document.getElementById('toolTargetInput')?.value?.trim() || '';
+    const output = document.getElementById('toolOutput');
+    if (output) output.textContent = 'Ejecutando...';
+
+    const data = await safeFetch('/api/red/tool' + mq('?'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool: currentTool, target }),
+    });
+    if (output) output.textContent = (data && data.output) ? data.output : 'Error al ejecutar la herramienta.';
+}
+
+document.getElementById('toolTargetInput')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') runCurrentTool();
+});
+
+// ── load all ──────────────────────────────────────────────────────────────────
+async function loadAll(force) {
+    const btn = document.getElementById('refreshBtn');
+    if (btn) btn.classList.add('loading');
+    setText('lastUpdate', force ? 'Actualizando…' : 'Cargando…');
+
+    if (force) {
+        cClear();
+        selectedAdapterName = null;
+    }
+
+    await Promise.all([
+        loadAdapters(force),
+        loadStats(force),
+        loadActivity(force),
+        loadAlerts(force),
+    ]);
+
+    const ts = cLoad('last_update') || nowStr();
+    if (force) { cSave('last_update', nowStr()); }
+    setText('lastUpdate', cLoad('last_update') || nowStr());
+    if (btn) btn.classList.remove('loading');
+}
+
+// ── sidebar persistence ───────────────────────────────────────────────────────
+(function () {
+    const sidebar = document.getElementById('sidebar');
+    if (localStorage.getItem('sidebarCollapsed') === 'true') sidebar?.classList.add('collapsed');
+    document.getElementById('sidebarToggle')?.addEventListener('click', () => {
+        sidebar?.classList.toggle('collapsed');
+        localStorage.setItem('sidebarCollapsed', sidebar?.classList.contains('collapsed') ? 'true' : 'false');
+    });
+})();
+
+// Restore sparkline history from session if available
+(function () {
+    const saved = cLoad('sparklines');
+    if (saved) {
+        if (saved.sent)    statsHist.sent    = saved.sent;
+        if (saved.recv)    statsHist.recv    = saved.recv;
+        if (saved.sentPkt) statsHist.sentPkt = saved.sentPkt;
+        if (saved.recvPkt) statsHist.recvPkt = saved.recvPkt;
+    }
+})();
+
+document.getElementById('refreshBtn')?.addEventListener('click', () => loadAll(true));
+
+// Selección de adaptador por clic en cualquier celda de la fila
+(function () {
+    const tbody = document.getElementById('adaptersTableBody');
+    if (!tbody) return;
+    tbody.addEventListener('click', function (e) {
+        const tr = e.target.closest('tr[data-aname]');
+        if (!tr) return;
+        const name = tr.getAttribute('data-aname');
+        if (name) selectAdapter(name, true);
+    });
+})();
+// Stats poller: 4 primeras veces cada 3 s, luego cada 10 s
+let _rdPollCount = 0;
+function _rdSchedulePoll() {
+    const delay = _rdPollCount < 4 ? 3000 : 10000;
+    setTimeout(async () => {
+        const data = await safeFetch('/api/red/stats');
+        if (data) { cSave('stats', data); applyStats(data); }
+        _rdPollCount++;
+        _rdSchedulePoll();
+    }, delay);
+}
+_rdSchedulePoll();
+window.addEventListener('machineChanged', () => { cClear(); loadAll(true); });
+
+// First load: use cache if available, fetch only what's missing
+loadAll(false);
+</script>
+<script src="{{ url_for('static', filename='js/profile_modal.js') }}"></script>
+<script src="{{ url_for('static', filename='js/csrf.js') }}"></script>
+<script>
+function _expMid() { return localStorage.getItem('ms_machine_id') || ''; }
+function _exp(mod, fmt) {
+    const mid = _expMid();
+    const qs = [fmt && `format=${fmt}`, mid && `machine_id=${mid}`].filter(Boolean).join('&');
+    window.open(`/api/export/${mod}${qs ? '?' + qs : ''}`, '_blank');
+    document.getElementById('exportDropdown')?.classList.remove('open');
+}
+function _expToggle() { document.getElementById('exportDropdown')?.classList.toggle('open'); }
+document.addEventListener('click', e => { if (!e.target.closest('#exportDropdown')) document.getElementById('exportDropdown')?.classList.remove('open'); });
+</script>
+</body>
+</html>

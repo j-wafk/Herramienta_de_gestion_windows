@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Tests / coverage
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+instance/*.db
+
+# Entorno y secretos
+.env
+venv/
+env/
+.venv/
+
+# Logs (se mantiene el directorio, se ignoran los archivos)
+logs/*.log
+!logs/.gitkeep
+
+# Build / packaging
+*.egg-info/
+dist/
+build/
+
+# Editores
+.DS_Store
+Thumbs.db
+
+# Archivos temporales de Word/Office
+~$*.docx
+~$*.xlsx
+~$*.pptx
+
+# Archivos de debug y utilidades de desarrollo
+debug.py
+count_code_lines.py
+Mejoras/
+
+# Carpetas locales de trabajo
+ELIMINAR/
+Entrega_borradores_Jaime_Walden/
+Entrega_borradores_Jaime_Walden.zip
+
+# Memoria del TFC (no publicar)
+TFC_Herramienta_Gestion_Remota_Windows.docx
+
+# Cobertura adicional
+coverage.xml
+
+# Configuración local del editor
+.claude/settings.local.json

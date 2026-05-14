@@ -1,0 +1,14 @@
+{% extends 'emails/_base.html' %}
+{% block title %}Email de prueba — Control Remoto{% endblock %}
+{% block content %}
+<p style="margin:0 0 12px;font-size:16px;font-weight:600">Configuración SMTP funcionando ✓</p>
+<p>Hola <strong>{{ user.username }}</strong>,</p>
+<p>Este es un correo de prueba enviado desde la <em>Herramienta de gestión Control Remoto Windows</em>.</p>
+<p>Si lo recibes, significa que la configuración SMTP del servidor es correcta y los correos de alerta (máquina caída, backup fallido, etc.) llegarán a esta dirección cuando ocurran.</p>
+<ul style="padding-left:20px">
+  <li>Servidor: <code>{{ smtp_host }}:{{ smtp_port }}</code></li>
+  <li>Remitente: <code>{{ mail_from }}</code></li>
+  <li>Fecha de envío: <code>{{ sent_at }}</code></li>
+</ul>
+<p style="margin-top:20px">Saludos,<br>El sistema de notificaciones.</p>
+{% endblock %}

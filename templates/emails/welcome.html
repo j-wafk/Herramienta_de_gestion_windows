@@ -1,0 +1,17 @@
+{% extends 'emails/_base.html' %}
+{% block title %}Bienvenido — Control Remoto{% endblock %}
+{% block header %}👋 Bienvenido a Control Remoto{% endblock %}
+{% block content %}
+<p>Hola <strong>{{ user.full_name or user.username }}</strong>,</p>
+<p>Se ha creado una cuenta para ti en la herramienta <em>Control Remoto para Windows</em>.</p>
+<table cellpadding="6" style="border-collapse:collapse;margin:14px 0;font-size:13px;width:100%">
+  <tr><td style="color:#6b7280">Usuario</td><td><strong>{{ user.username }}</strong></td></tr>
+  <tr><td style="color:#6b7280">Rol asignado</td><td>{{ user.role }}</td></tr>
+  <tr><td style="color:#6b7280">Email registrado</td><td>{{ user.email or '—' }}</td></tr>
+  <tr><td style="color:#6b7280">Creado el</td><td>{{ created_at }}</td></tr>
+</table>
+<p>Tu administrador te facilitará la contraseña inicial por canal seguro. Cámbiala en cuanto inicies sesión.</p>
+<p style="margin-top:18px;font-size:12px;color:#6b7280">
+  Si no esperabas este correo, avisa a tu administrador inmediatamente.
+</p>
+{% endblock %}

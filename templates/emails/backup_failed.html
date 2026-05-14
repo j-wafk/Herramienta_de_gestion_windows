@@ -1,0 +1,23 @@
+{% extends 'emails/_base.html' %}
+{% block title %}Backup fallido — {{ job_name }}{% endblock %}
+{% block header %}🔴 Backup fallido{% endblock %}
+{% block content %}
+<p style="margin:0 0 12px;font-size:16px;font-weight:600;color:#b91c1c">
+  La copia de seguridad <strong>{{ job_name }}</strong> ha fallado.
+</p>
+<table cellpadding="6" style="border-collapse:collapse;margin:14px 0;font-size:13px;width:100%">
+  <tr><td style="color:#6b7280">Trabajo</td><td><strong>{{ job_name }}</strong></td></tr>
+  <tr><td style="color:#6b7280">Máquina</td><td>{{ machine_name or '—' }}</td></tr>
+  <tr><td style="color:#6b7280">Inicio</td><td>{{ started_at }}</td></tr>
+  <tr><td style="color:#6b7280">Final</td><td>{{ finished_at or '—' }}</td></tr>
+  <tr><td style="color:#6b7280">Tipo</td><td>{{ backup_type }}</td></tr>
+</table>
+{% if error %}
+<p style="margin:0 0 8px;color:#6b7280;font-size:13px"><strong>Error reportado:</strong></p>
+<pre style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:10px;border-radius:6px;font-size:12px;white-space:pre-wrap;word-break:break-word">{{ error }}</pre>
+{% endif %}
+<p>Revisa el log del trabajo en la página de Copias de Seguridad para más detalle.</p>
+<p style="margin-top:18px;font-size:12px;color:#6b7280">
+  Recibes este correo porque tienes activado <em>"Avisos de backup fallido"</em> en tus preferencias.
+</p>
+{% endblock %}

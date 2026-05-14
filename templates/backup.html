@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="{{ current_user.language if current_user.is_authenticated else 'es' }}" data-theme="{{ current_user.theme if current_user.is_authenticated else 'light' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Control Remoto para Windows - Copias de Seguridad</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vista_general.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/backup.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile_modal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}">
+</head>
+<body data-user-role="{{ current_user.role }}">
+<div class="vg-wrapper">
+
+    <!-- HEADER -->
+    <header class="vg-header">
+        <div class="header-left">
+            <button class="hamburger" id="sidebarToggle" title="Mostrar/ocultar menú">
+                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            </button>
+            <span class="title">Control Remoto para Windows - Copias de Seguridad</span>
+        </div>
+        <div class="header-right">
+            <div id="machine-selector-host"></div>
+            <div class="user-info-header">
+                <button class="user-profile-trigger" onclick="openProfileModal()" title="Editar perfil">
+                    <span class="hdr-avatar" id="hdrAvatar" data-color="{{ current_user.avatar_color or '#0A67DC' }}">{{ (current_user.full_name or current_user.username)[:1].upper() }}</span>
+                    <span id="hdrUsername">{{ current_user.full_name or current_user.username }}</span>
+                    <span class="user-role-tag">{{ current_user.role }}</span>
+                </button>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn" data-i18n="header.logout">Cerrar sesión</a>
+            </div>
+            <div class="conn-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="#38B000" stroke="#38B000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>
+                <span id="connLabel" data-i18n="header.connected">CONECTADO</span>
+            </div>
+        </div>
+        <span id="status-indicator" style="display:none" class="status connected">CONECTADO</span>
+    </header>
+
+    <div class="vg-body">
+
+        <!-- SIDEBAR -->
+        <nav class="vg-sidebar" id="sidebar">
+            <ul class="nav-list">
+                <li>
+                    <a href="{{ url_for('index') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        <span class="nav-label" data-i18n="nav.overview">Vista General</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('rendimiento_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        <span class="nav-label" data-i18n="nav.performance">Rendimiento</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('hardware_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                        <span class="nav-label" data-i18n="nav.hardware">Hardware</span>
+                    </a>
+                </li>
+{% if current_user.role in ['superadmin', 'admin'] %}
+                <li class="nav-bottom">
+                    <a href="{{ url_for('auth.usuarios_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        <span class="nav-label" data-i18n="nav.users">Usuarios y Permisos</span>
+                    </a>
+                </li>
+                {% endif %}
+                <li>
+                    <a href="{{ url_for('particiones_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></svg>
+                        <span class="nav-label" data-i18n="nav.partitions">Particiones de Disco</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('red_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg>
+                        <span class="nav-label" data-i18n="nav.network">Configuración de Red</span>
+                    </a>
+                </li>
+                {% if current_user.role in ['superadmin', 'admin'] %}
+                <li class="nav-bottom">
+                    <a href="{{ url_for('auth.registros_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>
+                        <span class="nav-label" data-i18n="nav.logs">Registros del Sistema</span>
+                    </a>
+                </li>
+                {% endif %}
+<li class="active">
+                    <a href="{{ url_for('backup_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        <span class="nav-label" data-i18n="nav.backup">Copias de Seguridad</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('monitorizacion_page') }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                        <span class="nav-label" data-i18n="nav.monitoring">Monitorización</span>
+                    </a>
+                </li>
+</ul>
+
+            <div class="sidebar-machine">
+                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="machine-icon-svg"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                <div class="machine-details">
+                    <div class="machine-name"><span data-i18n="sidebar.device">Equipo:</span> <span id="sidebarHostname">...</span></div>
+                    <div id="sidebarOS">-</div>
+                    <div id="sidebarVersion">-</div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- MAIN -->
+        <main class="vg-main">
+            <h1 class="page-title" data-i18n="page.backup">Gestión de Copias de Seguridad</h1>
+
+            <!-- Summary cards -->
+            <div class="bk-summary">
+                <div class="bk-card">
+                    <div class="bk-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0A67DC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    </div>
+                    <div class="bk-card-info">
+                        <div class="bk-card-label">Copias Totales</div>
+                        <div class="bk-card-value" id="totalBackups">0</div>
+                        <div class="bk-card-sub">Registradas en el sistema</div>
+                    </div>
+                </div>
+                <div class="bk-card">
+                    <div class="bk-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                    </div>
+                    <div class="bk-card-info">
+                        <div class="bk-card-label">Última Copia</div>
+                        <div class="bk-card-value" id="lastBackupDate">--</div>
+                        <div class="bk-card-sub">Hace <span id="lastBackupDays">-</span> días</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main grid -->
+            <div class="bk-grid">
+
+                <!-- Backup jobs -->
+                <div class="bk-panel">
+                    <div class="bk-panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        Trabajos de Copia de Seguridad
+                        {% if current_user.role in ['superadmin', 'admin'] %}<button class="bk-btn bk-btn-primary" id="createBackupJobBtn" style="margin-left:auto">+ Nueva Copia</button>{% endif %}
+                    </div>
+                    <div class="jobs-list" id="jobsList">
+                        <div class="bk-empty">No hay trabajos configurados</div>
+                    </div>
+                </div>
+
+                <!-- Quick config -->
+                <div class="bk-panel">
+                    <div class="bk-panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                        Configuración Rápida
+                    </div>
+                    <div class="config-options">
+                        <div class="config-option">
+                            <div class="config-option-info">
+                                <div class="config-option-title">Backup de Sistema</div>
+                                <div class="config-option-desc">Copia completa del sistema operativo</div>
+                            </div>
+                            <button class="bk-btn bk-btn-primary" data-backup-type="system">Configurar</button>
+                        </div>
+                        <div class="config-option">
+                            <div class="config-option-info">
+                                <div class="config-option-title">Backup de Documentos</div>
+                                <div class="config-option-desc">Carpetas de usuario y documentos</div>
+                            </div>
+                            <button class="bk-btn bk-btn-primary" data-backup-type="documents">Configurar</button>
+                        </div>
+                        <div class="config-option">
+                            <div class="config-option-info">
+                                <div class="config-option-title">Backup de Aplicaciones</div>
+                                <div class="config-option-desc">Programas instalados y configuraciones</div>
+                            </div>
+                            <button class="bk-btn bk-btn-primary" data-backup-type="applications">Configurar</button>
+                        </div>
+                        <div class="config-option">
+                            <div class="config-option-info">
+                                <div class="config-option-title">Backup Personalizado</div>
+                                <div class="config-option-desc">Seleccionar carpetas específicas</div>
+                            </div>
+                            <button class="bk-btn bk-btn-primary" data-backup-type="custom">Configurar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Destinations -->
+                <div class="bk-panel">
+                    <div class="bk-panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+                        Destinos de Backup
+                        <button class="bk-btn bk-btn-primary" id="addDestinationBtn" style="margin-left:auto">+ Añadir</button>
+                    </div>
+                    <div class="destinations-list" id="destinationsList">
+                        <div class="bk-empty">No hay destinos configurados</div>
+                    </div>
+                </div>
+
+                <!-- History (full width) -->
+                <div class="bk-panel bk-panel-wide">
+                    <div class="bk-panel-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/></svg>
+                        Historial de Copias
+                        <button class="bk-refresh-btn" id="refreshHistoryBtn" title="Actualizar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                        </button>
+                    </div>
+                    <div class="history-toolbar">
+                        <input type="search" id="historySearch" placeholder="Buscar por nombre, ruta, estado…" autocomplete="off">
+                        <span class="history-meta" id="historyMeta">—</span>
+                    </div>
+                    <div class="history-list">
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha/Hora</th>
+                                    <th>Trabajo</th>
+                                    <th>Tipo</th>
+                                    <th>Tamaño</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <tr><td colspan="6" class="bk-empty">Sin historial disponible</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="history-pagination" id="historyPagination"></div>
+                </div>
+            </div>
+
+            <!-- Progress panel (floating) -->
+            <div class="progress-panel" id="progressPanel" style="display:none">
+                <div class="progress-header">
+                    <span id="progressTitle">Creando Copia de Seguridad...</span>
+                    <button class="progress-close" id="closeProgressBtn">&times;</button>
+                </div>
+                <div class="progress-content">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width:0%"></div>
+                        </div>
+                        <span class="progress-text" id="progressText">0%</span>
+                    </div>
+                    <div class="progress-details" id="progressDetails">Preparando...</div>
+                    <div class="progress-stats">
+                        <span id="progressFiles">0 archivos</span> |
+                        <span id="progressSize">0 MB</span> |
+                        <span id="progressTime">00:00</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="vg-footer">
+        <div class="footer-left">
+            <span><span data-i18n="footer.lastUpdate">Última actualización:</span> <span id="lastUpdate">--</span></span>
+        </div>
+        <div class="footer-right">
+            <span data-i18n="footer.timezone">Zona horaria:</span>
+            <span>(UTC+02:00) Madrid</span>
+            <span class="tz-caret">▾</span>
+        </div>
+    </footer>
+
+</div>
+
+<!-- Modal: crear/editar trabajo -->
+<div id="backupJobModal" class="bk-modal">
+    <div class="bk-modal-content">
+        <button class="bk-modal-close close-button" id="closeJobModal">&times;</button>
+        <h3 id="jobModalTitle">Nuevo Trabajo de Copia de Seguridad</h3>
+        <div class="modal-form">
+            <div class="form-group">
+                <label>Nombre del Trabajo:</label>
+                <input type="text" id="jobName" placeholder="Ej: Backup Diario">
+            </div>
+            <div class="form-group">
+                <label>Tipo de Backup:</label>
+                <select id="jobType">
+                    <option value="full">Completo</option>
+                    <option value="incremental">Incremental</option>
+                    <option value="differential">Diferencial</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Origen (carpetas a respaldar):</label>
+                <div class="folder-selection">
+                    <input type="text" id="jobSource" placeholder="C:\Users\%USERNAME%\Documents">
+                    <button type="button" id="browseSourceBtn">Explorar</button>
+                </div>
+                <div class="predefined-sources">
+                    <label><input type="checkbox" value="C:\Users"> Carpetas de Usuario</label>
+                    <label><input type="checkbox" value="C:\Program Files"> Programas</label>
+                    <label><input type="checkbox" value="C:\ProgramData"> Datos de Aplicación</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Destino:</label>
+                <div class="dest-select-row">
+                    <select id="jobDestination"></select>
+                    <button type="button" id="quickCreateDestBtn" class="bk-btn">+ Crear destino</button>
+                </div>
+                <div id="jobDestHint" class="bk-hint" style="display:none">
+                    Aún no hay destinos configurados. Crea uno antes de guardar el trabajo.
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Programación:</label>
+                <select id="jobSchedule">
+                    <option value="manual">Manual</option>
+                    <option value="daily">Diario</option>
+                    <option value="weekly">Semanal</option>
+                    <option value="monthly">Mensual</option>
+                </select>
+            </div>
+            <div class="form-group" id="scheduleTimeGroup">
+                <label>Hora de Ejecución:</label>
+                <input type="time" id="jobTime" value="02:00">
+            </div>
+            <div class="form-group">
+                <label>Opciones:</label>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="jobCompress" checked> Comprimir backup</label>
+                    <label><input type="checkbox" id="jobEncrypt"> Cifrar backup</label>
+                    <label><input type="checkbox" id="jobVerify" checked> Verificar integridad</label>
+                    <label><input type="checkbox" id="jobNotify"> Notificar cuando termine</label>
+                </div>
+            </div>
+        </div>
+        <div class="bk-modal-footer">
+            <button id="cancelJobBtn" class="bk-btn">Cancelar</button>
+            {% if current_user.role in ['superadmin', 'admin'] %}
+            <button id="saveJobBtn" class="bk-btn bk-btn-primary">Guardar Trabajo</button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal: añadir destino -->
+<div id="destinationModal" class="bk-modal">
+    <div class="bk-modal-content">
+        <button class="bk-modal-close close-button" id="closeDestinationModal">&times;</button>
+        <h3>Añadir Destino de Backup</h3>
+        <div class="modal-form">
+            <div class="form-group">
+                <label>Nombre del Destino:</label>
+                <input type="text" id="destinationName" placeholder="Ej: Disco Externo">
+            </div>
+            <div class="form-group">
+                <label>Tipo de Destino:</label>
+                <select id="destinationType">
+                    <option value="local">Disco Local/Externo</option>
+                    <option value="network">Carpeta de Red</option>
+                    <option value="cloud">Servicio en la Nube</option>
+                    <option value="ftp">Servidor FTP</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Ruta/Dirección:</label>
+                <input type="text" id="destinationPath" placeholder="D:\Backups">
+            </div>
+            <div class="form-group" id="credentialsGroup" style="display:none">
+                <label>Usuario:</label>
+                <input type="text" id="destinationUser">
+                <label style="margin-top:8px">Contraseña:</label>
+                <input type="password" id="destinationPassword">
+            </div>
+        </div>
+        <div class="bk-modal-footer">
+            <button id="cancelDestinationBtn" class="bk-btn">Cancelar</button>
+            <button id="testDestinationBtn" class="bk-btn">Probar Conexión</button>
+            <button id="saveDestinationBtn" class="bk-btn bk-btn-primary">Guardar Destino</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: detalles del backup -->
+<div id="backupDetailsModal" class="bk-modal">
+    <div class="bk-modal-content">
+        <button class="bk-modal-close close-button" id="closeDetailsModal">&times;</button>
+        <h3 id="detailsModalTitle">Detalles del Backup</h3>
+        <div id="backupDetailsContent" class="details-content"></div>
+        <div class="bk-modal-footer">
+            {% if current_user.role in ['superadmin', 'admin'] %}
+            <button id="restoreBackupBtn" class="bk-btn bk-btn-primary">Restaurar</button>
+            <button id="deleteBackupBtn" class="bk-btn bk-btn-danger">Eliminar</button>
+            {% endif %}
+            <button id="closeDetailsBtn" class="bk-btn">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: avisos / mensajes -->
+<div id="commandModal" class="bk-modal">
+    <div class="bk-modal-content">
+        <button class="bk-modal-close close-button" id="closeCommandModal">&times;</button>
+        <h3 id="commandModalTitle">Información</h3>
+        <pre id="commandOutput" class="command-output" style="white-space:pre-wrap"></pre>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+<script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+<script src="{{ url_for('static', filename='js/machine_selector.js') }}?v=13"></script>
+<script src="{{ url_for('static', filename='js/sidebar_info.js') }}"></script>
+<script src="{{ url_for('static', filename='js/backup.js') }}"></script>
+<script>
+    (function () {
+        const sidebar = document.getElementById('sidebar');
+        if (localStorage.getItem('sidebarCollapsed') === 'true') {
+            sidebar?.classList.add('collapsed');
+        }
+        document.getElementById('sidebarToggle')?.addEventListener('click', () => {
+            sidebar?.classList.toggle('collapsed');
+            localStorage.setItem('sidebarCollapsed', sidebar?.classList.contains('collapsed') ? 'true' : 'false');
+        });
+    })();
+</script>
+<script src="{{ url_for('static', filename='js/profile_modal.js') }}"></script>
+<script src="{{ url_for('static', filename='js/csrf.js') }}"></script>
+</body>
+</html>

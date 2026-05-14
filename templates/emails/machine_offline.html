@@ -1,0 +1,19 @@
+{% extends 'emails/_base.html' %}
+{% block title %}Máquina sin conexión — {{ machine.name }}{% endblock %}
+{% block header %}🔴 Máquina sin conexión{% endblock %}
+{% block content %}
+<p style="margin:0 0 12px;font-size:16px;font-weight:600;color:#b91c1c">
+  La máquina <strong>{{ machine.name }}</strong> ha pasado a estado <em>desconectado</em>.
+</p>
+<table cellpadding="6" style="border-collapse:collapse;margin:14px 0;font-size:13px;width:100%">
+  <tr><td style="color:#6b7280">Nombre</td><td><strong>{{ machine.name }}</strong></td></tr>
+  <tr><td style="color:#6b7280">IP</td><td><code>{{ machine.ip }}:{{ machine.port }}</code></td></tr>
+  <tr><td style="color:#6b7280">Descripción</td><td>{{ machine.description or '—' }}</td></tr>
+  <tr><td style="color:#6b7280">Último visto</td><td>{{ last_seen or '—' }}</td></tr>
+  <tr><td style="color:#6b7280">Detectado a las</td><td>{{ detected_at }}</td></tr>
+</table>
+<p>Comprueba la máquina o la red entre el servidor y ese host. La herramienta volverá a intentar contactar automáticamente.</p>
+<p style="margin-top:18px;font-size:12px;color:#6b7280">
+  Recibes este correo porque tienes activado <em>"Avisos de máquina sin conexión"</em> en tus preferencias.
+</p>
+{% endblock %}

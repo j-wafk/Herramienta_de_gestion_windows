@@ -1,0 +1,21 @@
+{% extends 'emails/_base.html' %}
+{% block title %}Backup completado — {{ job_name }}{% endblock %}
+{% block header %}✅ Backup completado{% endblock %}
+{% block content %}
+<p style="margin:0 0 12px;font-size:16px;font-weight:600;color:#15803d">
+  La copia de seguridad <strong>{{ job_name }}</strong> ha terminado correctamente.
+</p>
+<table cellpadding="6" style="border-collapse:collapse;margin:14px 0;font-size:13px;width:100%">
+  <tr><td style="color:#6b7280">Trabajo</td><td><strong>{{ job_name }}</strong></td></tr>
+  <tr><td style="color:#6b7280">Máquina</td><td>{{ machine_name or '—' }}</td></tr>
+  <tr><td style="color:#6b7280">Inicio</td><td>{{ started_at }}</td></tr>
+  <tr><td style="color:#6b7280">Final</td><td>{{ finished_at }}</td></tr>
+  <tr><td style="color:#6b7280">Duración</td><td>{{ duration }}</td></tr>
+  <tr><td style="color:#6b7280">Tamaño</td><td>{{ size }}</td></tr>
+  <tr><td style="color:#6b7280">Archivos</td><td>{{ files }}</td></tr>
+  <tr><td style="color:#6b7280">Tipo</td><td>{{ backup_type }}</td></tr>
+</table>
+<p style="margin-top:18px;font-size:12px;color:#6b7280">
+  Recibes este correo porque tienes activado <em>"Avisos de backup completado"</em> en tus preferencias.
+</p>
+{% endblock %}

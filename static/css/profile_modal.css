@@ -1,0 +1,266 @@
+/* profile_modal.css — panel de perfil de usuario */
+
+/* ── Trigger en header ─────────────────────────────────────────────────────── */
+.user-profile-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 8px;
+    transition: background 0.12s;
+    color: inherit;
+    font: inherit;
+}
+.user-profile-trigger:hover { background: rgba(0,0,0,0.06); }
+
+.hdr-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+/* ── Overlay ───────────────────────────────────────────────────────────────── */
+.pm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 2000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 5vh;
+}
+
+/* ── Modal box ─────────────────────────────────────────────────────────────── */
+.pm-box {
+    background: #fff;
+    border-radius: 12px;
+    width: 500px;
+    max-width: 95vw;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.18);
+    overflow: hidden;
+}
+
+/* ── Header del modal ──────────────────────────────────────────────────────── */
+.pm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 22px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    flex-shrink: 0;
+}
+.pm-header-user { display: flex; align-items: center; gap: 14px; }
+.pm-header-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.pm-header-name { font-size: 16px; font-weight: 600; color: #1f2328; line-height: 1.2; }
+.pm-header-role {
+    display: inline-block;
+    margin-top: 3px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #0A67DC;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 1px 8px;
+}
+.pm-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    line-height: 1;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: color 0.12s, background 0.12s;
+}
+.pm-close:hover { color: #374151; background: #f3f4f6; }
+
+/* ── Tabs ──────────────────────────────────────────────────────────────────── */
+.pm-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 0 22px;
+    flex-shrink: 0;
+}
+.pm-tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #6b7280;
+    cursor: pointer;
+    margin-bottom: -1px;
+    transition: color 0.12s, border-color 0.12s;
+}
+.pm-tab-btn:hover  { color: #374151; }
+.pm-tab-btn.active { color: #0A67DC; border-bottom-color: #0A67DC; }
+
+/* ── Message bar ───────────────────────────────────────────────────────────── */
+.pm-message {
+    min-height: 0;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 0 22px;
+    transition: all 0.15s;
+    overflow: hidden;
+}
+.pm-message--ok    { color: #2EA043; background: #f0fdf4; padding: 8px 22px; border-bottom: 1px solid #bbf7d0; }
+.pm-message--error { color: #dc2626; background: #fef2f2; padding: 8px 22px; border-bottom: 1px solid #fecaca; }
+
+/* ── Tab panels ────────────────────────────────────────────────────────────── */
+.pm-tab-panel { display: none; flex-direction: column; overflow-y: auto; flex: 1; padding: 18px 22px 0; }
+.pm-tab-panel.active { display: flex; }
+
+/* ── Form elements ─────────────────────────────────────────────────────────── */
+.pm-section { margin-bottom: 16px; }
+.pm-label   { display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+.pm-sublabel { font-size: 12px; color: #9ca3af; margin-top: 1px; }
+.pm-input {
+    width: 100%;
+    padding: 8px 11px;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    font-size: 13px;
+    color: #374151;
+    background: #fff;
+    box-sizing: border-box;
+    transition: border-color 0.12s, box-shadow 0.12s;
+}
+.pm-input:focus { outline: none; border-color: #0A67DC; box-shadow: 0 0 0 3px rgba(10,103,220,0.12); }
+
+/* ── Read-only grid (username, role, dates) ────────────────────────────────── */
+.pm-readonly-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 16px;
+    background: #f9fafb;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+.pm-readonly-val { font-size: 13px; color: #1f2328; font-weight: 500; margin-top: 2px; }
+
+/* ── Avatar picker ─────────────────────────────────────────────────────────── */
+.pm-avatar-picker { display: flex; align-items: center; gap: 16px; }
+.pm-avatar-preview {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 20px;
+    font-weight: 700;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+.pm-color-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.pm-color-swatch {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.12s, border-color 0.12s;
+}
+.pm-color-swatch:hover   { transform: scale(1.15); }
+.pm-color-swatch.active  { border-color: #1f2328; box-shadow: 0 0 0 2px #fff inset; }
+
+/* ── Toggle ────────────────────────────────────────────────────────────────── */
+.pm-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.pm-toggle { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+.pm-toggle input { opacity: 0; width: 0; height: 0; }
+.pm-toggle-track {
+    position: absolute;
+    inset: 0;
+    background: #d1d5db;
+    border-radius: 22px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.pm-toggle-track::before {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    left: 3px; top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+}
+.pm-toggle input:checked + .pm-toggle-track { background: #0A67DC; }
+.pm-toggle input:checked + .pm-toggle-track::before { transform: translateX(18px); }
+.pm-toggle input:disabled + .pm-toggle-track { cursor: not-allowed; opacity: 0.55; }
+
+/* ── Bloque "Eventos que disparan email" ───────────────────────────────── */
+.pm-notif-events {
+    padding: 12px 14px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+.pm-notif-events > .pm-label { margin-bottom: 2px; }
+.pm-notif-events > .pm-sublabel { margin-bottom: 10px; }
+.pm-notif-events .pm-toggle-row { padding: 8px 0; border-top: 1px solid #eef2f6; }
+.pm-notif-events .pm-toggle-row:first-of-type { border-top: none; }
+.pm-notif-events.pm-disabled { opacity: 0.55; }
+.pm-notif-events.pm-disabled .pm-toggle-row { pointer-events: none; }
+
+/* ── Password strength ─────────────────────────────────────────────────────── */
+.pm-strength-wrap   { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.pm-strength-track  { flex: 1; height: 4px; background: #e5e7eb; border-radius: 2px; overflow: hidden; }
+.pm-strength-bar    { height: 100%; width: 0; border-radius: 2px; transition: width 0.25s, background 0.25s; }
+.pm-strength-label  { font-size: 11px; font-weight: 500; min-width: 70px; text-align: right; }
+
+/* ── Footer con botón ──────────────────────────────────────────────────────── */
+.pm-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 14px 0 18px;
+    margin-top: auto;
+    flex-shrink: 0;
+}
+.pm-btn-primary {
+    padding: 8px 22px;
+    background: #0A67DC;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+.pm-btn-primary:hover    { background: #0956c1; }
+.pm-btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }

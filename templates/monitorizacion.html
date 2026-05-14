@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="{{ current_user.language if current_user.is_authenticated else 'es' }}" data-theme="{{ current_user.theme if current_user.is_authenticated else 'light' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Control Remoto para Windows - Monitorización</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vista_general.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/profile_modal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark.css') }}">
+    <style>
+        .mon-summary {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 17px;
+            margin-bottom: 18px;
+        }
+        .mon-card {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            padding: 22px 26px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+        }
+        .mon-card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #eff6ff;
+            flex-shrink: 0;
+        }
+        .mon-card-icon.green { background: #ecfdf5; }
+        .mon-card-info { flex: 1; }
+        .mon-card-label { font-size: 14px; color: #6b7280; margin-bottom: 4px; }
+        .mon-card-value { font-size: 28px; font-weight: 700; color: #0A67DC; }
+        .mon-card-value.green { color: #2EA043; }
+        .mon-card-sub { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+
+        .mon-panel {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            overflow: visible;       /* permitir que el tbody se vea por completo */
+            flex-shrink: 0;          /* dentro de .vg-main (flex column) no encoger */
+        }
+        .mon-panel-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 18px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .mon-panel-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2328;
+            flex: 1;
+        }
+        .mon-panel-body { padding: 14px 18px; }
+        .mon-search {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 13px;
+            width: 280px;
+            outline: none;
+        }
+        .mon-search:focus { border-color: #0A67DC; box-shadow: 0 0 0 2px rgba(10,103,220,0.12); }
+        .mon-btn {
+            padding: 8px 14px;
+            background: #0A67DC;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .mon-btn:hover { background: #0855b8; }
+        .mon-btn.secondary { background: #f3f4f6; color: #1f2328; border: 1px solid #d1d5db; }
+        .mon-btn.secondary:hover { background: #e5e7eb; }
+        .mon-btn.danger { background: #dc2626; }
+        .mon-btn.danger:hover { background: #b91c1c; }
+        .mon-btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+        .mon-info {
+            color: #6b7280;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: auto;
+        }
+
+        .mon-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: auto; }
+        .mon-table tbody tr { display: table-row !important; }
+        .mon-table tbody td { display: table-cell !important; vertical-align: middle; }
+        .mon-table thead th {
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            color: #6b7280;
+            padding: 10px 14px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #fafafa;
+        }
+        .mon-table tbody tr td {
+            padding: 11px 14px;
+            border-bottom: 1px solid #f3f4f6;
+            color: #1f2328;
+        }
+        .mon-table tbody tr:hover td { background: #f8f9fb; }
+        .mon-table tbody tr:last-child td { border-bottom: none; }
+        .mon-table tbody tr.selected td { background: #eff6ff; }
+
+        .mon-status { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
+        .mon-status .dot { width: 9px; height: 9px; border-radius: 50%; background: #9ca3af; box-shadow: 0 0 0 2px rgba(156,163,175,0.18); }
+        .mon-status.online .dot, .mon-status.up .dot { background: #2EA043; box-shadow: 0 0 0 2px rgba(46,160,67,0.20); }
+        .mon-status.warning .dot { background: #F59E0B; box-shadow: 0 0 0 2px rgba(245,158,11,0.20); }
+        .mon-status.offline .dot, .mon-status.down .dot { background: #DC2626; box-shadow: 0 0 0 2px rgba(220,38,38,0.20); }
+        .mon-status .badge { padding: 2px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; border: 1px solid; }
+        .mon-status.online .badge, .mon-status.up .badge { background: #ecfdf5; color: #15803d; border-color: #a7f3d0; }
+        .mon-status.warning .badge { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+        .mon-status.offline .badge, .mon-status.down .badge { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+        .mon-status.unknown .badge { background: #f3f4f6; color: #374151; border-color: #d1d5db; }
+
+        .svc-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 26px; height: 26px;
+            border-radius: 5px; background: #eff6ff; color: #0A67DC;
+            font-size: 10px; font-weight: 700;
+            margin-right: 8px; vertical-align: middle; text-transform: uppercase;
+        }
+        .svc-icon.winrm  { background: #dbeafe; color: #1d4ed8; }
+        .svc-icon.iis    { background: #fef3c7; color: #92400e; }
+        .svc-icon.sql    { background: #e0e7ff; color: #3730a3; }
+        .svc-icon.rdp    { background: #fce7f3; color: #9d174d; }
+        .svc-icon.dns    { background: #fee2e2; color: #991b1b; }
+        .svc-icon.api    { background: #cffafe; color: #155e75; }
+        .svc-icon.backup { background: #dcfce7; color: #166534; }
+        .svc-icon.ssh    { background: #fef9c3; color: #854d0e; }
+
+        .mon-empty { padding: 30px; text-align: center; color: #9ca3af; font-size: 13px; }
+
+        .mon-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: center; justify-content: center; }
+        .mon-modal.open { display: flex; }
+        .mon-modal-content { background: white; border-radius: 10px; padding: 24px 28px 20px; width: min(520px, 90vw); max-height: 80vh; overflow-y: auto; position: relative; box-shadow: 0 8px 32px rgba(0,0,0,0.18); }
+        .mon-modal-content h3 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+        .mon-modal-close { position: absolute; top: 14px; right: 18px; background: none; border: none; font-size: 22px; cursor: pointer; color: #6b7280; }
+        .mon-form-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+        .mon-form-row label { font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; }
+        .mon-form-row input, .mon-form-row select {
+            padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 5px;
+            font-size: 13px; outline: none; font-family: inherit;
+        }
+        .mon-form-row input:focus, .mon-form-row select:focus {
+            border-color: #0A67DC; box-shadow: 0 0 0 2px rgba(10,103,220,0.12);
+        }
+        .mon-form-grid { display: grid; grid-template-columns: 1fr 130px; gap: 12px; }
+        .mon-modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #eee; }
+    </style>
+</head>
+<body data-user-role="{{ current_user.role }}">
+<div class="vg-wrapper">
+
+    <header class="vg-header">
+        <div class="header-left">
+            <button class="hamburger" id="sidebarToggle" title="Mostrar/ocultar menú">
+                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            </button>
+            <span class="title">Control Remoto para Windows - Monitorización</span>
+        </div>
+        <div class="header-right">
+            <div id="machine-selector-host"></div>
+            <div class="user-info-header">
+                <button class="user-profile-trigger" onclick="openProfileModal()" title="Editar perfil">
+                    <span class="hdr-avatar" id="hdrAvatar" data-color="{{ current_user.avatar_color or '#0A67DC' }}">{{ (current_user.full_name or current_user.username)[:1].upper() }}</span>
+                    <span id="hdrUsername">{{ current_user.full_name or current_user.username }}</span>
+                    <span class="user-role-tag">{{ current_user.role }}</span>
+                </button>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn" data-i18n="header.logout">Cerrar sesión</a>
+            </div>
+            <div class="conn-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="#38B000" stroke="#38B000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>
+                <span id="connLabel" data-i18n="header.connected">CONECTADO</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="vg-body">
+
+        <nav class="vg-sidebar" id="sidebar">
+            <ul class="nav-list">
+                <li><a href="{{ url_for('index') }}"><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="nav-label" data-i18n="nav.overview">Vista General</span></a></li>
+                <li><a href="{{ url_for('rendimiento_page') }}"><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label" data-i18n="nav.performance">Rendimiento</span></a></li>
+                <li><a href="{{ url_for('hardware_page') }}"><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg><span class="nav-label" data-i18n="nav.hardware">Hardware</span></a></li>
+{% if current_user.role in ['superadmin', 'admin'] %}
+                <li class="nav-bottom"><a href="{{ url_for('auth.usuarios_page') }}"><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label" data-i18n="nav.users">Usuarios y Permisos</span></a></li>
+                {% endif %}
+                <li><a href="{{ url_for('particiones_page') }}"><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></svg><span class="nav-label" data-i18n="nav.partitions">Particiones de Disco</span></a></li>
+                <li><a href="{{ url_for('red_page') }}"><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg><span class="nav-label" data-i18n="nav.network">Configuración de Red</span></a></li>
+                {% if current_user.role in ['superadmin', 'admin'] %}
+                <li class="nav-bottom"><a href="{{ url_for('auth.registros_page') }}"><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg><span class="nav-label" data-i18n="nav.logs">Registros del Sistema</span></a></li>
+                {% endif %}
+<li><a href="{{ url_for('backup_page') }}"><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg><span class="nav-label" data-i18n="nav.backup">Copias de Seguridad</span></a></li>
+                <li class="active"><a href="{{ url_for('monitorizacion_page') }}"><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg><span class="nav-label" data-i18n="nav.monitoring">Monitorización</span></a></li>
+</ul>
+            <div class="sidebar-machine">
+                <svg class="machine-icon-svg" xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                <div class="machine-details">
+                    <div class="machine-name"><span data-i18n="sidebar.device">Equipo:</span> <span id="sidebarHostname">...</span></div>
+                    <div id="sidebarOS">-</div>
+                    <div id="sidebarVersion">-</div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="vg-main">
+            <h1 class="page-title" data-i18n="page.monitoring">Monitorización</h1>
+
+            <div class="mon-summary">
+                <div class="mon-card">
+                    <div class="mon-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0A67DC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </div>
+                    <div class="mon-card-info">
+                        <div class="mon-card-label">Servicios funcionando</div>
+                        <div class="mon-card-value"><span id="mSvcUp">--</span> / <span id="mSvcTotal">--</span></div>
+                        <div class="mon-card-sub">Servicios operativos</div>
+                    </div>
+                </div>
+                <div class="mon-card">
+                    <div class="mon-card-icon green">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2EA043" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    </div>
+                    <div class="mon-card-info">
+                        <div class="mon-card-label">Máquinas activas</div>
+                        <div class="mon-card-value green"><span id="mMachOnline">--</span> / <span id="mMachTotal">--</span></div>
+                        <div class="mon-card-sub">Equipos en línea</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mon-panel">
+                <div class="mon-panel-header"><span class="mon-panel-title">Máquinas monitorizadas</span></div>
+                <div class="mon-panel-body" style="display:flex;align-items:center;gap:12px">
+                    <input type="search" class="mon-search" id="machSearch" placeholder="Buscar máquina por nombre…">
+                    {% if current_user.role in ['superadmin', 'admin', 'operador'] %}
+                    <button class="mon-btn" id="btnAddMachine" style="margin-left:auto">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                        Añadir máquina
+                    </button>
+                    {% endif %}
+                </div>
+                <table class="mon-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>IP</th>
+                            <th>Estado</th>
+                            <th>Descripción</th>
+                            {% if current_user.role in ['superadmin', 'admin', 'operador'] %}<th></th>{% endif %}
+                        </tr>
+                    </thead>
+                    <tbody id="machBody">
+                        <tr><td colspan="5" class="mon-empty">Cargando máquinas…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mon-panel">
+                <div class="mon-panel-header"><span class="mon-panel-title">Servicios por máquina</span></div>
+                <div class="mon-panel-body" style="display:flex;align-items:center;gap:12px">
+                    {% if current_user.role in ['superadmin', 'admin'] %}
+                    <button class="mon-btn" id="btnAddService">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                        Añadir servicio
+                    </button>
+                    <button class="mon-btn secondary" id="btnEditService" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Editar
+                    </button>
+                    {% endif %}
+                    <span class="mon-info">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>
+                        Verificación por IP y puerto cada 30 s
+                    </span>
+                </div>
+                <table class="mon-table">
+                    <thead>
+                        <tr>
+                            <th>Máquina</th>
+                            <th>Servicio</th>
+                            <th>IP</th>
+                            <th>Puerto</th>
+                            <th>Protocolo</th>
+                            <th>Estado</th>
+                            <th>Último check</th>
+                        </tr>
+                    </thead>
+                    <tbody id="svcBody">
+                        <tr><td colspan="7" class="mon-empty">Cargando servicios…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mon-panel">
+                <div class="mon-panel-header"><span class="mon-panel-title">Actividad reciente</span></div>
+                <table class="mon-table">
+                    <thead>
+                        <tr>
+                            <th>Hora</th>
+                            <th>Máquina</th>
+                            <th>Servicio</th>
+                            <th>Mensaje</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="actBody">
+                        <tr><td colspan="5" class="mon-empty">Cargando actividad…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <footer class="vg-footer">
+        <div class="footer-left">
+            <span><span data-i18n="footer.lastUpdate">Última actualización:</span> <span id="lastUpdate">--</span></span>
+            <button class="refresh-btn" id="refreshBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                <span data-i18n="footer.refreshNow">Actualizar ahora</span>
+            </button>
+        </div>
+        <div class="footer-right">
+            <span data-i18n="footer.timezone">Zona horaria:</span>
+            <span>(UTC+02:00) Madrid</span>
+            <span class="tz-caret">▾</span>
+        </div>
+    </footer>
+
+</div>
+
+<!-- Modal Máquina -->
+<div id="machineModal" class="mon-modal">
+    <div class="mon-modal-content">
+        <button class="mon-modal-close" id="closeMachineModal">&times;</button>
+        <h3 id="machineModalTitle">Añadir máquina</h3>
+        <div class="mon-form-row">
+            <label>Nombre</label>
+            <input type="text" id="mMachineName" placeholder="SRV-DC01" maxlength="64">
+        </div>
+        <div class="mon-form-grid">
+            <div class="mon-form-row">
+                <label>IP</label>
+                <input type="text" id="mMachineIp" placeholder="192.168.1.10">
+            </div>
+            <div class="mon-form-row">
+                <label>Puerto</label>
+                <input type="number" id="mMachinePort" value="12345" min="1" max="65535">
+            </div>
+        </div>
+        <div class="mon-form-row">
+            <label>Descripción (opcional)</label>
+            <input type="text" id="mMachineDesc" placeholder="Servidor de dominio" maxlength="200">
+        </div>
+        <div class="mon-modal-footer">
+            <button class="mon-btn danger" id="deleteMachine" style="margin-right:auto;display:none">Eliminar</button>
+            <button class="mon-btn secondary" id="cancelMachine">Cancelar</button>
+            <button class="mon-btn" id="saveMachine">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Servicio -->
+<div id="serviceModal" class="mon-modal">
+    <div class="mon-modal-content">
+        <button class="mon-modal-close" id="closeServiceModal">&times;</button>
+        <h3 id="serviceModalTitle">Añadir servicio</h3>
+        <div class="mon-form-row">
+            <label>Máquina</label>
+            <select id="mSvcMachine"></select>
+        </div>
+        <div class="mon-form-row">
+            <label>Nombre</label>
+            <input type="text" id="mSvcName" placeholder="WinRM, IIS, SQL Server…" maxlength="64">
+        </div>
+        <div class="mon-form-grid">
+            <div class="mon-form-row">
+                <label>IP</label>
+                <input type="text" id="mSvcIp" placeholder="192.168.1.10">
+            </div>
+            <div class="mon-form-row">
+                <label>Puerto</label>
+                <input type="number" id="mSvcPort" min="1" max="65535">
+            </div>
+        </div>
+        <div class="mon-form-grid">
+            <div class="mon-form-row">
+                <label>Protocolo</label>
+                <select id="mSvcProto">
+                    <option value="TCP">TCP</option>
+                    <option value="UDP">UDP</option>
+                </select>
+            </div>
+            <div class="mon-form-row">
+                <label>Habilitado</label>
+                <select id="mSvcEnabled">
+                    <option value="1">Sí</option>
+                    <option value="0">No</option>
+                </select>
+            </div>
+        </div>
+        <div class="mon-modal-footer">
+            <button class="mon-btn danger" id="deleteService" style="margin-right:auto;display:none">Eliminar</button>
+            <button class="mon-btn secondary" id="cancelService">Cancelar</button>
+            <button class="mon-btn" id="saveService">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
+<script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+<script src="{{ url_for('static', filename='js/machine_selector.js') }}?v=13"></script>
+<script src="{{ url_for('static', filename='js/sidebar_info.js') }}"></script>
+<script src="{{ url_for('static', filename='js/monitorizacion.js') }}?v=13"></script>
+<script>
+    (function () {
+        const sidebar = document.getElementById('sidebar');
+        if (localStorage.getItem('sidebarCollapsed') === 'true') sidebar?.classList.add('collapsed');
+        document.getElementById('sidebarToggle')?.addEventListener('click', () => {
+            sidebar?.classList.toggle('collapsed');
+            localStorage.setItem('sidebarCollapsed', sidebar?.classList.contains('collapsed') ? 'true' : 'false');
+        });
+    })();
+</script>
+<script src="{{ url_for('static', filename='js/profile_modal.js') }}"></script>
+<script src="{{ url_for('static', filename='js/csrf.js') }}"></script>
+</body>
+</html>

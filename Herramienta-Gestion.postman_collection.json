@@ -1,0 +1,1889 @@
+{
+  "info": {
+    "name": "Herramienta de Gestión",
+    "description": "Colección completa de APIs de la Herramienta de Gestión, organizada por módulo.\n\n**Variables requeridas:**\n- `base_url`: URL base del servidor (ej. http://localhost:5000)\n\n**Autenticación:** La mayoría de endpoints requieren sesión activa. Ejecuta primero `POST /auth/login`. La sesión se mantiene automáticamente mediante cookies.\n\n**Roles disponibles:** superadmin · admin · operador · solo_lectura",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string",
+      "description": "URL base del servidor"
+    },
+    {
+      "key": "machine_id",
+      "value": "1",
+      "type": "string",
+      "description": "ID de la máquina para endpoints que lo requieran"
+    },
+    {
+      "key": "user_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "job_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "dest_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "run_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "svc_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+
+    {
+      "name": "01 · Autenticación",
+      "description": "Login, logout, gestión de usuarios y perfil.",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "username", "value": "admin", "type": "text", "description": "Nombre de usuario" },
+                { "key": "password", "value": "changeme", "type": "text", "description": "Contraseña" }
+              ]
+            },
+            "description": "Inicia sesión. Envía credenciales como form-data. Devuelve redirect 302 o error 401. La sesión se mantiene por cookie de sesión."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Cierra la sesión activa. Invalida la cookie de sesión y redirige a /auth/login."
+          }
+        },
+        {
+          "name": "Listar usuarios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/usuarios",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "usuarios"]
+            },
+            "description": "Devuelve la lista de todos los usuarios. Requiere rol superadmin o admin."
+          }
+        },
+        {
+          "name": "Crear usuario",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/auth/usuarios",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "usuarios"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"nuevo_usuario\",\n  \"password\": \"Segura123!\",\n  \"role\": \"operador\",\n  \"email\": \"usuario@ejemplo.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Crea un nuevo usuario. Solo superadmin."
+          }
+        },
+        {
+          "name": "Actualizar usuario",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/auth/usuarios/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "usuarios", "{{user_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"admin\",\n  \"email\": \"nuevo@ejemplo.com\",\n  \"is_active\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Actualiza datos de un usuario. Requiere rol superadmin o admin."
+          }
+        },
+        {
+          "name": "Eliminar usuario",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/usuarios/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "usuarios", "{{user_id}}"]
+            },
+            "description": "Elimina un usuario. Solo superadmin."
+          }
+        },
+        {
+          "name": "Obtener perfil actual",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/api/profile",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "api", "profile"]
+            },
+            "description": "Devuelve el perfil del usuario autenticado (nombre, rol, idioma, tema, email)."
+          }
+        },
+        {
+          "name": "Actualizar perfil",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/auth/api/profile/update",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "api", "profile", "update"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"language\": \"es\",\n  \"theme\": \"dark\",\n  \"email\": \"yo@ejemplo.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Actualiza idioma, tema y email del usuario autenticado."
+          }
+        },
+        {
+          "name": "Cambiar contraseña",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/auth/api/profile/password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "api", "profile", "password"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"antigua123\",\n  \"new_password\": \"Nueva@456!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Cambia la contraseña del usuario autenticado."
+          }
+        },
+        {
+          "name": "Registros de auditoría (página)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/registros",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "registros"]
+            },
+            "description": "Página HTML de logs de auditoría."
+          }
+        },
+        {
+          "name": "Listar registros de auditoría",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/api/registros?page=1&per_page=50",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "api", "registros"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "per_page", "value": "50" },
+                { "key": "user", "value": "", "disabled": true },
+                { "key": "action", "value": "", "disabled": true },
+                { "key": "from", "value": "", "disabled": true },
+                { "key": "to", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Devuelve logs de auditoría paginados y filtrables."
+          }
+        },
+        {
+          "name": "Exportar registros de auditoría",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/api/registros/export?format=csv",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "api", "registros", "export"],
+              "query": [
+                { "key": "format", "value": "csv", "description": "csv | xlsx | pdf" }
+              ]
+            },
+            "description": "Exporta los registros de auditoría en CSV, XLSX o PDF."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "02 · Rendimiento",
+      "description": "Métricas de CPU, memoria, disco, procesos, red y servicios del sistema.",
+      "item": [
+        {
+          "name": "Resumen del sistema",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/system",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "system"]
+            },
+            "description": "Datos globales: CPU, memoria, disco y procesos activos."
+          }
+        },
+        {
+          "name": "Datos de CPU",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/cpu",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "cpu"]
+            },
+            "description": "Uso de CPU actual e historial."
+          }
+        },
+        {
+          "name": "Datos de memoria",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/memory",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "memory"]
+            },
+            "description": "Uso de memoria RAM actual e historial."
+          }
+        },
+        {
+          "name": "Detalle de memoria",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/memory_detail",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "memory_detail"]
+            },
+            "description": "Información detallada de memoria (física, virtual, paginación)."
+          }
+        },
+        {
+          "name": "Lista de procesos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/processes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "processes"]
+            },
+            "description": "Listado de procesos en ejecución con CPU y memoria."
+          }
+        },
+        {
+          "name": "Matar proceso",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/process/kill",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "process", "kill"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pid\": 1234\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Termina un proceso por PID. Requiere rol superadmin o admin."
+          }
+        },
+        {
+          "name": "Iniciar proceso",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/process/start",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "process", "start"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"notepad.exe\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Inicia un proceso. Requiere rol superadmin o admin."
+          }
+        },
+        {
+          "name": "Información de red",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/network",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "network"]
+            },
+            "description": "Información de interfaces de red del sistema local."
+          }
+        },
+        {
+          "name": "Estado de servicios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/services",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "services"]
+            },
+            "description": "Lista de servicios del sistema y su estado."
+          }
+        },
+        {
+          "name": "Logs del sistema",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/logs",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "logs"]
+            },
+            "description": "Últimas entradas del log del sistema."
+          }
+        },
+        {
+          "name": "Información del sistema",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/system_info",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "system_info"]
+            },
+            "description": "Información general del sistema operativo y hardware."
+          }
+        },
+        {
+          "name": "Estado detallado de servicios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/services_status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "services_status"]
+            },
+            "description": "Estado detallado de servicios con métricas extendidas."
+          }
+        },
+        {
+          "name": "Estado de seguridad",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/security_status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "security_status"]
+            },
+            "description": "Resumen del estado de seguridad (firewall, antivirus, actualizaciones)."
+          }
+        },
+        {
+          "name": "Resumen de disco",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/disk_summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "disk_summary"]
+            },
+            "description": "Uso del disco con historial."
+          }
+        },
+        {
+          "name": "Actividad reciente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/recent_activity",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "recent_activity"]
+            },
+            "description": "Actividad reciente del sistema."
+          }
+        },
+        {
+          "name": "Lista de discos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/disk_list",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "disk_list"]
+            },
+            "description": "Lista de unidades de disco disponibles."
+          }
+        },
+        {
+          "name": "Estadísticas de red",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/network_stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "network_stats"]
+            },
+            "description": "Estadísticas de tráfico de red."
+          }
+        },
+        {
+          "name": "Historial de métricas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rendimiento/history?hours=24",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rendimiento", "history"],
+              "query": [
+                { "key": "hours", "value": "24", "description": "1-168 horas" }
+              ]
+            },
+            "description": "Historial de métricas del sistema. Rango: 1-168 horas."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "03 · Máquinas",
+      "description": "Gestión del inventario de máquinas remotas y su monitorización.",
+      "item": [
+        {
+          "name": "Listar máquinas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/machines",
+              "host": ["{{base_url}}"],
+              "path": ["api", "machines"]
+            },
+            "description": "Devuelve todas las máquinas registradas."
+          }
+        },
+        {
+          "name": "Añadir máquina",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/machines",
+              "host": ["{{base_url}}"],
+              "path": ["api", "machines"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Servidor-01\",\n  \"ip\": \"192.168.1.10\",\n  \"description\": \"Servidor de producción\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Registra una nueva máquina. Requiere rol superadmin, admin u operador."
+          }
+        },
+        {
+          "name": "Actualizar máquina",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/machines/{{machine_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "machines", "{{machine_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Servidor-01-v2\",\n  \"ip\": \"192.168.1.20\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Actualiza datos de una máquina. Requiere rol superadmin, admin u operador."
+          }
+        },
+        {
+          "name": "Eliminar máquina",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/machines/{{machine_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "machines", "{{machine_id}}"]
+            },
+            "description": "Elimina una máquina del inventario. Requiere rol superadmin, admin u operador."
+          }
+        },
+        {
+          "name": "Métricas de máquina",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/machines/{{machine_id}}/metrics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "machines", "{{machine_id}}", "metrics"]
+            },
+            "description": "Historial de métricas de una máquina específica."
+          }
+        },
+        {
+          "name": "Servicios de máquina",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/machines/{{machine_id}}/services",
+              "host": ["{{base_url}}"],
+              "path": ["api", "machines", "{{machine_id}}", "services"]
+            },
+            "description": "Servicios asociados a una máquina."
+          }
+        },
+        {
+          "name": "Ping a máquina",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/machines/{{machine_id}}/ping",
+              "host": ["{{base_url}}"],
+              "path": ["api", "machines", "{{machine_id}}", "ping"]
+            },
+            "description": "Realiza un ping a una máquina específica. Requiere rol superadmin, admin u operador."
+          }
+        },
+        {
+          "name": "Ping a todas las máquinas",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/machines/ping_all",
+              "host": ["{{base_url}}"],
+              "path": ["api", "machines", "ping_all"]
+            },
+            "description": "Realiza ping simultáneo a todas las máquinas registradas. Requiere rol superadmin, admin u operador."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "04 · Hardware",
+      "description": "Información y refresco de hardware: CPU, RAM, discos, GPU, placa base y dispositivos.",
+      "item": [
+        {
+          "name": "Snapshot de hardware (BD)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/hardware/snapshot",
+              "host": ["{{base_url}}"],
+              "path": ["api", "hardware", "snapshot"]
+            },
+            "description": "Devuelve el último snapshot de hardware guardado en base de datos."
+          }
+        },
+        {
+          "name": "Refrescar hardware (live)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/hardware/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["api", "hardware", "refresh"]
+            },
+            "description": "Obtiene datos de hardware en tiempo real y los guarda en BD. Requiere rol superadmin, admin u operador."
+          }
+        },
+        {
+          "name": "RAM en vivo (ligero)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/hardware/memory/live",
+              "host": ["{{base_url}}"],
+              "path": ["api", "hardware", "memory", "live"]
+            },
+            "description": "Uso de RAM en tiempo real, endpoint ligero para polling frecuente."
+          }
+        },
+        {
+          "name": "Sistema",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/hardware/system",
+              "host": ["{{base_url}}"],
+              "path": ["api", "hardware", "system"]
+            },
+            "description": "Información general del sistema (SO, modelo de equipo)."
+          }
+        },
+        {
+          "name": "Info hardware",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/hardware/info",
+              "host": ["{{base_url}}"],
+              "path": ["api", "hardware", "info"]
+            },
+            "description": "Alias de /api/hardware/system."
+          }
+        },
+        {
+          "name": "CPU",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/hardware/cpu",
+              "host": ["{{base_url}}"],
+              "path": ["api", "hardware", "cpu"]
+            },
+            "description": "Detalles del procesador (modelo, núcleos, frecuencia)."
+          }
+        },
+        {
+          "name": "Memoria",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/hardware/memory",
+              "host": ["{{base_url}}"],
+              "path": ["api", "hardware", "memory"]
+            },
+            "description": "Detalles de módulos de RAM instalados."
+          }
+        },
+        {
+          "name": "Discos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/hardware/disks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "hardware", "disks"]
+            },
+            "description": "Información de discos físicos."
+          }
+        },
+        {
+          "name": "GPU",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/hardware/gpu",
+              "host": ["{{base_url}}"],
+              "path": ["api", "hardware", "gpu"]
+            },
+            "description": "Información de tarjetas gráficas."
+          }
+        },
+        {
+          "name": "Placa base",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/hardware/motherboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "hardware", "motherboard"]
+            },
+            "description": "Información de la placa base."
+          }
+        },
+        {
+          "name": "Dispositivos conectados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/hardware/devices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "hardware", "devices"]
+            },
+            "description": "Lista de dispositivos USB y periféricos conectados."
+          }
+        },
+        {
+          "name": "Exportar informe hardware",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/hardware/export",
+              "host": ["{{base_url}}"],
+              "path": ["api", "hardware", "export"]
+            },
+            "description": "Descarga el informe de hardware en formato JSON."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "05 · Particiones",
+      "description": "Gestión de discos físicos y particiones. Sin chkdsk, SMART ni defrag.",
+      "item": [
+        {
+          "name": "Listar discos físicos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/particiones/disks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "particiones", "disks"]
+            },
+            "description": "Lista los discos físicos disponibles."
+          }
+        },
+        {
+          "name": "Listar particiones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/particiones/partitions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "particiones", "partitions"]
+            },
+            "description": "Lista todas las particiones de todos los discos."
+          }
+        },
+        {
+          "name": "Detalle de disco",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/particiones/disk_detail?disk=0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "particiones", "disk_detail"],
+              "query": [
+                { "key": "disk", "value": "0", "description": "Índice del disco físico" }
+              ]
+            },
+            "description": "Detalle de un disco físico concreto."
+          }
+        },
+        {
+          "name": "Operación de partición",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/particiones/partition_operation",
+              "host": ["{{base_url}}"],
+              "path": ["api", "particiones", "partition_operation"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"operation\": \"format\",\n  \"drive_letter\": \"D\",\n  \"file_system\": \"NTFS\",\n  \"label\": \"Datos\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Ejecuta una operación sobre una partición. Operaciones disponibles: create, format, delete, resize. Requiere rol superadmin o admin."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "06 · Red",
+      "description": "Adaptadores de red, estadísticas, alertas y herramientas de diagnóstico.",
+      "item": [
+        {
+          "name": "Listar adaptadores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/red/adapters",
+              "host": ["{{base_url}}"],
+              "path": ["api", "red", "adapters"]
+            },
+            "description": "Lista todos los adaptadores de red del sistema."
+          }
+        },
+        {
+          "name": "Detalle de adaptador",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/red/adapter_details?adapter=Ethernet",
+              "host": ["{{base_url}}"],
+              "path": ["api", "red", "adapter_details"],
+              "query": [
+                { "key": "adapter", "value": "Ethernet", "description": "Nombre del adaptador" }
+              ]
+            },
+            "description": "Detalles de un adaptador de red específico."
+          }
+        },
+        {
+          "name": "Estadísticas de red",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/red/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "red", "stats"]
+            },
+            "description": "Estadísticas de tráfico de red (bytes enviados/recibidos)."
+          }
+        },
+        {
+          "name": "Actividad de red",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/red/activity",
+              "host": ["{{base_url}}"],
+              "path": ["api", "red", "activity"]
+            },
+            "description": "Eventos de actividad de red recientes."
+          }
+        },
+        {
+          "name": "Alertas de red",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/red/alerts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "red", "alerts"]
+            },
+            "description": "Alertas activas de red."
+          }
+        },
+        {
+          "name": "Herramienta de red - Ping",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/red/tool",
+              "host": ["{{base_url}}"],
+              "path": ["api", "red", "tool"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool\": \"ping\",\n  \"target\": \"8.8.8.8\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Ejecuta la herramienta ping."
+          }
+        },
+        {
+          "name": "Herramienta de red - Traceroute",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/red/tool",
+              "host": ["{{base_url}}"],
+              "path": ["api", "red", "tool"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool\": \"traceroute\",\n  \"target\": \"google.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Ejecuta traceroute hacia un destino."
+          }
+        },
+        {
+          "name": "Herramienta de red - ipconfig",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/red/tool",
+              "host": ["{{base_url}}"],
+              "path": ["api", "red", "tool"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool\": \"ipconfig\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Ejecuta ipconfig para ver la configuración de red."
+          }
+        },
+        {
+          "name": "Herramienta de red - netstat",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/red/tool",
+              "host": ["{{base_url}}"],
+              "path": ["api", "red", "tool"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool\": \"netstat\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Ejecuta netstat para ver conexiones activas."
+          }
+        },
+        {
+          "name": "Herramienta de red - Flush DNS",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/red/tool",
+              "host": ["{{base_url}}"],
+              "path": ["api", "red", "tool"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool\": \"flush_dns\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Limpia la caché DNS."
+          }
+        },
+        {
+          "name": "Herramienta de red - Renovar IP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/red/tool",
+              "host": ["{{base_url}}"],
+              "path": ["api", "red", "tool"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool\": \"release_renew\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Libera y renueva la IP por DHCP."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "07 · Backup",
+      "description": "Destinos, trabajos, historial, restauración y compresión de backups.",
+      "item": [
+        {
+          "name": "Destinos",
+          "item": [
+            {
+              "name": "Listar destinos",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/destinations",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "destinations"]
+                },
+                "description": "Lista todos los destinos de backup configurados."
+              }
+            },
+            {
+              "name": "Crear destino",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/destinations",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "destinations"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"NAS-Principal\",\n  \"type\": \"local\",\n  \"path\": \"D:\\\\Backups\",\n  \"machine_id\": {{machine_id}}\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "description": "Crea un nuevo destino de backup. Requiere rol superadmin o admin."
+              }
+            },
+            {
+              "name": "Actualizar destino",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/destinations/{{dest_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "destinations", "{{dest_id}}"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"NAS-Secundario\",\n  \"path\": \"E:\\\\Backups\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "description": "Actualiza un destino de backup. Requiere rol superadmin o admin."
+              }
+            },
+            {
+              "name": "Eliminar destino",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/destinations/{{dest_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "destinations", "{{dest_id}}"]
+                },
+                "description": "Elimina un destino de backup. Requiere rol superadmin o admin."
+              }
+            },
+            {
+              "name": "Probar destino",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/destinations/{{dest_id}}/test",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "destinations", "{{dest_id}}", "test"]
+                },
+                "description": "Verifica la conectividad/acceso a un destino. Requiere rol superadmin, admin u operador."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Trabajos (Jobs)",
+          "item": [
+            {
+              "name": "Listar trabajos",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/jobs",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "jobs"]
+                },
+                "description": "Lista todos los trabajos de backup."
+              }
+            },
+            {
+              "name": "Crear trabajo",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/jobs",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "jobs"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Backup-Diario\",\n  \"source_path\": \"C:\\\\Datos\",\n  \"destination_id\": {{dest_id}},\n  \"type\": \"incremental\",\n  \"schedule\": \"daily\",\n  \"schedule_time\": \"02:00\",\n  \"machine_id\": {{machine_id}}\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "description": "Crea un nuevo trabajo de backup. Requiere rol superadmin o admin."
+              }
+            },
+            {
+              "name": "Actualizar trabajo",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/jobs/{{job_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "jobs", "{{job_id}}"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"schedule_time\": \"03:00\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "description": "Actualiza un trabajo de backup. Requiere rol superadmin o admin."
+              }
+            },
+            {
+              "name": "Eliminar trabajo",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/jobs/{{job_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "jobs", "{{job_id}}"]
+                },
+                "description": "Elimina un trabajo de backup. Requiere rol superadmin o admin."
+              }
+            },
+            {
+              "name": "Activar/Desactivar trabajo",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/jobs/{{job_id}}/toggle",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "jobs", "{{job_id}}", "toggle"]
+                },
+                "description": "Alterna el estado habilitado/deshabilitado de un trabajo. Requiere rol superadmin o admin."
+              }
+            },
+            {
+              "name": "Ejecutar trabajo ahora",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/jobs/{{job_id}}/run",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "jobs", "{{job_id}}", "run"]
+                },
+                "description": "Lanza el trabajo de backup inmediatamente. Requiere rol superadmin, admin u operador."
+              }
+            },
+            {
+              "name": "Ejecutar trabajo programado",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/jobs/{{job_id}}/run_scheduled",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "jobs", "{{job_id}}", "run_scheduled"]
+                },
+                "description": "Ejecuta la tarea programada de un trabajo. Requiere rol superadmin o admin."
+              }
+            },
+            {
+              "name": "Log de tarea programada",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/jobs/{{job_id}}/scheduled_log",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "jobs", "{{job_id}}", "scheduled_log"]
+                },
+                "description": "Obtiene el log de la última ejecución programada."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historial",
+          "item": [
+            {
+              "name": "Listar historial",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/history?page=1&per_page=20",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "history"],
+                  "query": [
+                    { "key": "page", "value": "1" },
+                    { "key": "per_page", "value": "20" },
+                    { "key": "search", "value": "", "disabled": true }
+                  ]
+                },
+                "description": "Lista el historial de backups con paginación y búsqueda."
+              }
+            },
+            {
+              "name": "Obtener ejecución",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/runs/{{run_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "runs", "{{run_id}}"]
+                },
+                "description": "Devuelve los detalles de una ejecución de backup específica."
+              }
+            },
+            {
+              "name": "Detalle de historial",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/history/{{run_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "history", "{{run_id}}"]
+                },
+                "description": "Devuelve los detalles de una entrada del historial."
+              }
+            },
+            {
+              "name": "Restaurar backup",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/history/{{run_id}}/restore",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "history", "{{run_id}}", "restore"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"destination_path\": \"C:\\\\Restauracion\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "description": "Restaura un backup a la ruta indicada. Requiere rol superadmin o admin."
+              }
+            },
+            {
+              "name": "Eliminar historial",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/history/{{run_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "history", "{{run_id}}"]
+                },
+                "description": "Elimina una entrada del historial. Requiere rol superadmin o admin."
+              }
+            },
+            {
+              "name": "Verificar backup",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/history/{{run_id}}/verify",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "history", "{{run_id}}", "verify"]
+                },
+                "description": "Verifica la integridad de un backup."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Compresión",
+          "item": [
+            {
+              "name": "Comprimir ficheros",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/compress",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "compress"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"source_path\": \"C:\\\\Datos\",\n  \"destination_path\": \"C:\\\\Backups\\\\datos.zip\",\n  \"level\": \"normal\",\n  \"machine_id\": {{machine_id}}\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "description": "Comprime ficheros o directorios. Requiere rol superadmin o admin."
+              }
+            },
+            {
+              "name": "Descomprimir ficheros",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/decompress",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "decompress"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"source_path\": \"C:\\\\Backups\\\\datos.zip\",\n  \"destination_path\": \"C:\\\\Restauracion\",\n  \"machine_id\": {{machine_id}}\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "description": "Descomprime un archivo comprimido. Requiere rol superadmin o admin."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resumen y estado",
+          "item": [
+            {
+              "name": "Resumen de backup",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/summary",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "summary"]
+                },
+                "description": "Resumen del estado general del sistema de backup."
+              }
+            },
+            {
+              "name": "Estado del backup",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/status",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "status"]
+                },
+                "description": "Estado actual del sistema de backup."
+              }
+            },
+            {
+              "name": "Tareas programadas",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/scheduled",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "scheduled"]
+                },
+                "description": "Lista los backups programados activos."
+              }
+            },
+            {
+              "name": "Listar backups (legacy)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/backup/list?path=C:\\\\Backups",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "backup", "list"],
+                  "query": [
+                    { "key": "path", "value": "C:\\\\Backups" }
+                  ]
+                },
+                "description": "Lista backups en una ruta (endpoint legacy)."
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "08 · Monitorización",
+      "description": "Servicios monitorizados, máquinas y resumen de estado.",
+      "item": [
+        {
+          "name": "Listar servicios monitorizados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/monitorizacion/services",
+              "host": ["{{base_url}}"],
+              "path": ["api", "monitorizacion", "services"]
+            },
+            "description": "Lista todos los servicios bajo monitorización."
+          }
+        },
+        {
+          "name": "Crear servicio monitorizado",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/monitorizacion/services",
+              "host": ["{{base_url}}"],
+              "path": ["api", "monitorizacion", "services"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Web-Nginx\",\n  \"type\": \"http\",\n  \"target\": \"http://192.168.1.10\",\n  \"interval\": 60,\n  \"machine_id\": {{machine_id}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Registra un servicio para monitorizar. Requiere rol superadmin o admin."
+          }
+        },
+        {
+          "name": "Actualizar servicio monitorizado",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/monitorizacion/services/{{svc_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "monitorizacion", "services", "{{svc_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"interval\": 120\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Actualiza la configuración de un servicio monitorizado. Requiere rol superadmin o admin."
+          }
+        },
+        {
+          "name": "Eliminar servicio monitorizado",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/monitorizacion/services/{{svc_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "monitorizacion", "services", "{{svc_id}}"]
+            },
+            "description": "Elimina un servicio de la monitorización. Requiere rol superadmin o admin."
+          }
+        },
+        {
+          "name": "Comprobar servicio ahora",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/monitorizacion/services/{{svc_id}}/check",
+              "host": ["{{base_url}}"],
+              "path": ["api", "monitorizacion", "services", "{{svc_id}}", "check"]
+            },
+            "description": "Fuerza una comprobación inmediata del servicio. Requiere rol superadmin, admin u operador."
+          }
+        },
+        {
+          "name": "Actividad reciente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/monitorizacion/activity",
+              "host": ["{{base_url}}"],
+              "path": ["api", "monitorizacion", "activity"]
+            },
+            "description": "Lista la actividad reciente del sistema de monitorización."
+          }
+        },
+        {
+          "name": "Añadir máquina (monitorización)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/monitorizacion/machines",
+              "host": ["{{base_url}}"],
+              "path": ["api", "monitorizacion", "machines"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Router-01\",\n  \"ip\": \"192.168.1.1\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Añade una máquina al módulo de monitorización. Requiere rol superadmin, admin u operador."
+          }
+        },
+        {
+          "name": "Actualizar máquina (monitorización)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/monitorizacion/machines/{{machine_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "monitorizacion", "machines", "{{machine_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ip\": \"192.168.1.2\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Actualiza datos de una máquina en monitorización. Requiere rol superadmin, admin u operador."
+          }
+        },
+        {
+          "name": "Eliminar máquina (monitorización)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/monitorizacion/machines/{{machine_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "monitorizacion", "machines", "{{machine_id}}"]
+            },
+            "description": "Elimina una máquina del módulo de monitorización. Requiere rol superadmin, admin u operador."
+          }
+        },
+        {
+          "name": "Resumen de monitorización",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/monitorizacion/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "monitorizacion", "summary"]
+            },
+            "description": "Resumen del estado global de la monitorización."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "09 · Notificaciones",
+      "description": "Configuración SMTP y envío de emails de prueba.",
+      "item": [
+        {
+          "name": "Obtener configuración SMTP",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/config",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications", "config"]
+            },
+            "description": "Devuelve la configuración SMTP actual. Solo superadmin."
+          }
+        },
+        {
+          "name": "Enviar email de prueba",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/test",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications", "test"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"admin@ejemplo.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Envía un email de prueba para verificar la configuración SMTP. Solo superadmin."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "10 · Exportación",
+      "description": "Exportación de informes en formato XLSX o PDF por módulo.",
+      "item": [
+        {
+          "name": "Exportar informe hardware",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/export/hardware?format=xlsx",
+              "host": ["{{base_url}}"],
+              "path": ["api", "export", "hardware"],
+              "query": [
+                { "key": "format", "value": "xlsx", "description": "xlsx | pdf" }
+              ]
+            },
+            "description": "Descarga el informe de hardware en XLSX o PDF."
+          }
+        },
+        {
+          "name": "Exportar informe rendimiento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/export/rendimiento?format=xlsx",
+              "host": ["{{base_url}}"],
+              "path": ["api", "export", "rendimiento"],
+              "query": [
+                { "key": "format", "value": "xlsx", "description": "xlsx | pdf" }
+              ]
+            },
+            "description": "Descarga el informe de rendimiento en XLSX o PDF."
+          }
+        },
+        {
+          "name": "Exportar informe particiones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/export/particiones?format=xlsx",
+              "host": ["{{base_url}}"],
+              "path": ["api", "export", "particiones"],
+              "query": [
+                { "key": "format", "value": "xlsx", "description": "xlsx | pdf" }
+              ]
+            },
+            "description": "Descarga el informe de particiones en XLSX o PDF."
+          }
+        },
+        {
+          "name": "Exportar informe red",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/export/red?format=xlsx",
+              "host": ["{{base_url}}"],
+              "path": ["api", "export", "red"],
+              "query": [
+                { "key": "format", "value": "xlsx", "description": "xlsx | pdf" }
+              ]
+            },
+            "description": "Descarga el informe de red en XLSX o PDF."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "11 · Health / Estado servidor",
+      "description": "Endpoints de health check para monitorizar el servidor.",
+      "item": [
+        {
+          "name": "Health check general",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Comprueba que el servidor está en línea. No requiere autenticación."
+          }
+        },
+        {
+          "name": "Health check PowerShell",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/powershell",
+              "host": ["{{base_url}}"],
+              "path": ["health", "powershell"]
+            },
+            "description": "Verifica la conectividad con el agente PowerShell. No requiere autenticación."
+          }
+        },
+        {
+          "name": "Health check background thread",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/background",
+              "host": ["{{base_url}}"],
+              "path": ["health", "background"]
+            },
+            "description": "Estado del hilo de refresco en segundo plano. No requiere autenticación."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "12 · Compatibilidad (Legacy)",
+      "description": "Endpoints heredados mantenidos por compatibilidad con versiones anteriores.",
+      "item": [
+        {
+          "name": "Página de procesos (legacy)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/procesos",
+              "host": ["{{base_url}}"],
+              "path": ["procesos"]
+            },
+            "description": "Página HTML de procesos (ruta legacy)."
+          }
+        },
+        {
+          "name": "Ejecutar comando (legacy)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/command",
+              "host": ["{{base_url}}"],
+              "path": ["api", "command"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"Get-Date\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Ejecuta un comando en el sistema. Requiere rol superadmin o admin."
+          }
+        },
+        {
+          "name": "Sistema (legacy)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/system",
+              "host": ["{{base_url}}"],
+              "path": ["api", "system"]
+            },
+            "description": "Datos del sistema (endpoint legacy, equivalente a /api/rendimiento/system)."
+          }
+        },
+        {
+          "name": "CPU (legacy)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/cpu",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cpu"]
+            },
+            "description": "Datos de CPU (endpoint legacy)."
+          }
+        },
+        {
+          "name": "Memoria (legacy)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/memory",
+              "host": ["{{base_url}}"],
+              "path": ["api", "memory"]
+            },
+            "description": "Datos de memoria (endpoint legacy)."
+          }
+        },
+        {
+          "name": "Procesos (legacy)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/processes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "processes"]
+            },
+            "description": "Lista de procesos (endpoint legacy)."
+          }
+        },
+        {
+          "name": "Disco (legacy)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/disk",
+              "host": ["{{base_url}}"],
+              "path": ["api", "disk"]
+            },
+            "description": "Datos de disco (endpoint legacy)."
+          }
+        },
+        {
+          "name": "Herramienta de disco (legacy)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/disk_tool",
+              "host": ["{{base_url}}"],
+              "path": ["api", "disk_tool"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool\": \"list\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Herramienta de disco (endpoint legacy). Requiere rol superadmin o admin."
+          }
+        },
+        {
+          "name": "Operación de partición (legacy)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/partition_operation",
+              "host": ["{{base_url}}"],
+              "path": ["api", "partition_operation"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"operation\": \"format\",\n  \"drive_letter\": \"D\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Operación de partición (endpoint legacy). Requiere rol superadmin o admin."
+          }
+        }
+      ]
+    }
+
+  ]
+}

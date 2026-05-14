@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+.env
+htmlcov/
+coverage.xml
+.coverage
+tests/
+*.md
+*.docx
+*.bat
+*.sh
+nul
+Mejoras/

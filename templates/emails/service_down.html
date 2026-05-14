@@ -1,0 +1,20 @@
+{% extends 'emails/_base.html' %}
+{% block title %}Servicio caído — {{ service.name }}{% endblock %}
+{% block header %}⚠️ Servicio caído{% endblock %}
+{% block content %}
+<p style="margin:0 0 12px;font-size:16px;font-weight:600;color:#b91c1c">
+  El servicio <strong>{{ service.name }}</strong> ha dejado de responder.
+</p>
+<table cellpadding="6" style="border-collapse:collapse;margin:14px 0;font-size:13px;width:100%">
+  <tr><td style="color:#6b7280">Servicio</td><td><strong>{{ service.name }}</strong></td></tr>
+  <tr><td style="color:#6b7280">Endpoint</td><td><code>{{ service.protocol }} {{ service.ip }}:{{ service.port }}</code></td></tr>
+  <tr><td style="color:#6b7280">Máquina</td><td>{{ machine_name or '—' }}</td></tr>
+  <tr><td style="color:#6b7280">Estado anterior</td><td>{{ prev_status }}</td></tr>
+  <tr><td style="color:#6b7280">Mensaje</td><td>{{ message or '—' }}</td></tr>
+  <tr><td style="color:#6b7280">Detectado a las</td><td>{{ detected_at }}</td></tr>
+</table>
+<p>Comprueba que el servicio está arrancado y que el puerto está abierto en el firewall de la máquina.</p>
+<p style="margin-top:18px;font-size:12px;color:#6b7280">
+  Recibes este correo porque tienes activado <em>"Avisos de servicio caído"</em> en tus preferencias.
+</p>
+{% endblock %}
