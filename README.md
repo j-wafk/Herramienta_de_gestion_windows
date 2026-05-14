@@ -158,13 +158,17 @@ Herramienta-de-gestion/
 ├── migrations/                    # Migraciones Alembic
 ├── nginx/                         # Configuración nginx + Dockerfile
 ├── postgres/                      # Configuración PostgreSQL con SSL
-├── diagrama_clases.md             # Diagrama de clases del proyecto
-├── Herramienta-Gestion.postman_collection.json  # Colección Postman
+├── docs/                          # Documentación y diagramas
+│   ├── TESTING.md                 # Guía completa de testing
+│   ├── diagrama_clases.md         # Diagrama de clases del proyecto
+│   └── Herramienta-Gestion.postman_collection.json  # Colección Postman
+├── scripts/                       # Scripts auxiliares
+│   ├── run_tests.bat              # Tests en Windows
+│   └── run_tests.sh               # Tests en Linux/Mac
 ├── docker-compose.yml
 ├── Dockerfile
 ├── requirements.txt
 ├── requirements-dev.txt
-├── TESTING.md                     # Guía completa de testing
 └── .env.example
 ```
 
@@ -351,11 +355,11 @@ pytest
 pytest --cov=. --cov-report=html
 
 # Scripts de conveniencia
-run_tests.bat      # Windows
-./run_tests.sh     # Linux/Mac
+scripts\run_tests.bat      # Windows
+./scripts/run_tests.sh     # Linux/Mac
 ```
 
-El proyecto cuenta con **10 archivos de tests unitarios** (parsers, caché, cifrado, mailer, modelos, probe, validators, backup services) y **13 archivos de tests de integración** (uno por blueprint/módulo). Ver [TESTING.md](TESTING.md) para la guía completa.
+El proyecto cuenta con **10 archivos de tests unitarios** (parsers, caché, cifrado, mailer, modelos, probe, validators, backup services) y **13 archivos de tests de integración** (uno por blueprint/módulo). Ver [docs/TESTING.md](docs/TESTING.md) para la guía completa.
 
 ## Seguridad
 
@@ -382,7 +386,7 @@ Para entornos de producción:
 
 ## Postman
 
-El archivo `Herramienta-Gestion.postman_collection.json` incluye todos los endpoints documentados listos para importar en Postman.
+El archivo `docs/Herramienta-Gestion.postman_collection.json` incluye todos los endpoints documentados listos para importar en Postman.
 
 ## Licencia
 

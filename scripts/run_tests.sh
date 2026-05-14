@@ -2,6 +2,8 @@
 # Script para ejecutar tests automatizados en Linux/Mac
 # Herramienta de Gestión Remota para Windows
 
+cd "$(dirname "$0")/.." || exit 1
+
 echo "================================================"
 echo "   Tests Automatizados - Sistema de Gestión"
 echo "================================================"

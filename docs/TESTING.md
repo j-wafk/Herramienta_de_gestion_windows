@@ -57,13 +57,13 @@ tests/
 
 #### Windows
 ```bash
-run_tests.bat
+scripts\run_tests.bat
 ```
 
 #### Linux/Mac
 ```bash
-chmod +x run_tests.sh
-./run_tests.sh
+chmod +x scripts/run_tests.sh
+./scripts/run_tests.sh
 ```
 
 Ambos scripts ofrecen un menú interactivo con opciones:

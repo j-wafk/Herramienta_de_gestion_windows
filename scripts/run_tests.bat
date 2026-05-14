@@ -2,6 +2,8 @@
 REM Script para ejecutar tests automatizados en Windows
 REM Herramienta de Gestión Remota para Windows
 
+cd /d "%~dp0.."
+
 echo ================================================
 echo    Tests Automatizados - Sistema de Gestion
 echo ================================================
