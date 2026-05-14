@@ -51,4 +51,4 @@ TFC_Herramienta_Gestion_Remota_Windows.docx
 coverage.xml
 
 # Configuración local del editor
-.claude/settings.local.json
+.claude/
