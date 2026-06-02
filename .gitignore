@@ -51,4 +51,17 @@ TFC_Herramienta_Gestion_Remota_Windows.docx
 coverage.xml
 
 # Configuración local del editor
-.claude/
+.vscode/
+.idea/
+
+# Certificados TLS (generados localmente — no subir al repositorio)
+certs/*
+!certs/.gitkeep
+
+# Documentos académicos (TFC y guías de usuario)
+Guia_de_Usuario*.docx
+TFC_Herramienta_Gestion_Remota_Windows_Jaime_Walden.docx
+Libro*.xlsx
+
+# Archivos temporales de trabajo
+_guia_tmp.txt
