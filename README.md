@@ -197,6 +197,24 @@ docker-compose up -d
 
 Acceder en `https://localhost` — El certificado autofirmado generará una advertencia en el navegador la primera vez.
 
+#### Certificado TLS (opcional)
+
+No hace falta generar ni proveer ningún certificado: `nginx/Dockerfile` y `postgres/Dockerfile` crean un certificado autofirmado al construir la imagen, así que `docker compose up -d` arranca sin más.
+
+Si quieres usar un certificado propio (Let's Encrypt, certificado interno de tu organización, etc.):
+
+```bash
+# 1. Copia el ejemplo de override
+cp docker-compose.override.yml.example docker-compose.override.yml
+
+# 2. Coloca tu server.crt y server.key en ./certs/ (o ajusta las rutas dentro del override)
+
+# 3. Reconstruye y levanta
+docker compose up -d --build
+```
+
+Docker Compose carga `docker-compose.override.yml` automáticamente y monta los archivos sobre el certificado autogenerado.
+
 ### Opción B — Instalación local
 
 **Requisitos previos**
