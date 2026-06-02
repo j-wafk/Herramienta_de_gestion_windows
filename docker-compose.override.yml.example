@@ -1,0 +1,18 @@
+# Ejemplo de override para montar un certificado TLS propio en nginx.
+#
+# Por defecto la imagen nginx se construye con un certificado autofirmado y la
+# aplicación funciona sin que tengas que generar nada. Si quieres usar tu propio
+# certificado (Let's Encrypt, certificado interno de tu organización, etc.):
+#
+#   1. Copia este archivo a "docker-compose.override.yml" (sin el sufijo .example).
+#   2. Coloca server.crt y server.key en ./certs/ (o ajusta las rutas).
+#   3. docker compose up -d --build
+#
+# Docker Compose carga automáticamente docker-compose.override.yml encima del
+# fichero base, así que estos volúmenes sustituirán al certificado autogenerado.
+
+services:
+  nginx:
+    volumes:
+      - ./certs/server.crt:/etc/nginx/certs/server.crt:ro
+      - ./certs/server.key:/etc/nginx/certs/server.key:ro

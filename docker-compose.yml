@@ -1,14 +1,16 @@
 services:
 
   # ── nginx — Proxy inverso TLS (HTTPS) ───────────────────────────────────────
+  # El certificado autofirmado se genera dentro de la imagen al construirla
+  # (ver nginx/Dockerfile), así que no hace falta proveer nada en el host.
+  # Para usar un certificado propio (p. ej. Let's Encrypt en producción), crea
+  # un docker-compose.override.yml que monte tus archivos en
+  # /etc/nginx/certs/server.crt y /etc/nginx/certs/server.key.
   nginx:
     build: ./nginx
     ports:
       - "80:80"     # redirige a HTTPS
       - "443:443"   # HTTPS terminado aquí
-    volumes:
-      - ./certs/server.crt:/etc/nginx/certs/server.crt:ro
-      - ./certs/server.key:/etc/nginx/certs/server.key:ro
     depends_on:
       flask:
         condition: service_healthy   # esperar a que Flask responda /health

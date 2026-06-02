@@ -58,6 +58,9 @@ coverage.xml
 certs/*
 !certs/.gitkeep
 
+# Override local de docker-compose (no subir al repositorio)
+docker-compose.override.yml
+
 # Documentos académicos (TFC y guías de usuario)
 Guia_de_Usuario*.docx
 TFC_Herramienta_Gestion_Remota_Windows_Jaime_Walden.docx
