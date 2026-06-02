@@ -75,14 +75,14 @@ class TestUserModel:
         u.created_at = datetime(2026, 1, 1)
         u.last_login = datetime(2026, 5, 1, 10, 30, 0)
         d = u.to_dict()
-        assert d['last_login'] == '2026-05-01T10:30:00'
+        assert d['last_login'] == '2026-05-01T10:30:00Z'
 
     def test_to_dict_created_at_serializa_iso(self):
         from database.models import User
         u = User(username='hank', role='solo_lectura')
         u.created_at = datetime(2026, 3, 15, 8, 0, 0)
         d = u.to_dict()
-        assert d['created_at'] == '2026-03-15T08:00:00'
+        assert d['created_at'] == '2026-03-15T08:00:00Z'
 
     def test_role_default_solo_lectura(self):
         from database.models import User
@@ -121,7 +121,7 @@ class TestMachineModel:
         m.created_at = datetime(2026, 1, 1)
         m.last_seen = datetime(2026, 5, 1, 12, 0, 0)
         d = m.to_dict()
-        assert d['last_seen'] == '2026-05-01T12:00:00'
+        assert d['last_seen'] == '2026-05-01T12:00:00Z'
 
     def test_to_dict_status_default_unknown(self):
         from database.models import Machine
@@ -156,7 +156,7 @@ class TestSystemMetricModel:
         assert d['memory'] == 60.0
         assert d['disk_used'] == 30.0
         assert d['disk_free'] == 70.0
-        assert d['timestamp'] == '2026-05-01T12:00:00'
+        assert d['timestamp'] == '2026-05-01T12:00:00Z'
 
     def test_to_dict_valores_none(self):
         from database.models import SystemMetric
@@ -229,7 +229,7 @@ class TestHardwareSnapshotModel:
         h.motherboard_json = '{}'
         h.devices_json = '[]'
         d = h.to_dict()
-        assert d['timestamp'] == '2026-03-15T09:00:00'
+        assert d['timestamp'] == '2026-03-15T09:00:00Z'
 
 
 # ── BackupRun ─────────────────────────────────────────────────────────────────
@@ -293,7 +293,7 @@ class TestBackupRunModel:
     def test_to_dict_started_at_serializa_iso(self):
         r = self._make_run(started_at=datetime(2026, 5, 1, 8, 30, 0))
         d = r.to_dict()
-        assert d['started_at'] == '2026-05-01T08:30:00'
+        assert d['started_at'] == '2026-05-01T08:30:00Z'
 
     def test_to_dict_finished_at_none_cuando_sin_terminar(self):
         r = self._make_run(finished_at=None, status='running')
