@@ -24,7 +24,7 @@ def _send(command):
 
 def _parse_kv(text):
     """Parse 'key: value' lines into a dict, stripping UTF-8 BOM if present."""
-    text = (text or '').lstrip('ï»¿')
+    text = (text or '').lstrip('﻿')
     data = {}
     for line in text.strip().splitlines():
         if ': ' in line:
@@ -35,7 +35,7 @@ def _parse_kv(text):
 
 def _parse_pipe(text):
     """Parse pipe-delimited table into list of dicts, stripping BOM."""
-    text = (text or '').lstrip('ï»¿')
+    text = (text or '').lstrip('﻿')
     lines = text.strip().splitlines()
     if not lines:
         return []
