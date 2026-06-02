@@ -700,6 +700,85 @@ document.addEventListener('DOMContentLoaded', function() {
         if (currentAction) runActionFetch(currentAction, modalCountSelect.value);
     });
 
+    // ── Confirmación reinicio ─────────────────────────────────────────
+    (function () {
+        const restartModal  = document.getElementById('restartConfirmModal');
+        const confirmInput  = document.getElementById('restartConfirmInput');
+        const doBtn         = document.getElementById('restartDoBtn');
+        const cancelBtn     = document.getElementById('restartCancelBtn');
+        const closeBtn      = document.getElementById('restartModalClose');
+        const resultDiv     = document.getElementById('restartResult');
+        if (!restartModal) return;
+
+        function openRestartModal() {
+            confirmInput.value = '';
+            doBtn.disabled = true;
+            doBtn.style.opacity = '0.45';
+            doBtn.style.cursor = 'not-allowed';
+            resultDiv.style.display = 'none';
+            restartModal.style.display = 'block';
+            setTimeout(() => confirmInput.focus(), 80);
+        }
+
+        function closeRestartModal() {
+            restartModal.style.display = 'none';
+        }
+
+        confirmInput.addEventListener('input', function () {
+            const ok = this.value === 'CONFIRMAR';
+            doBtn.disabled = !ok;
+            doBtn.style.opacity = ok ? '1' : '0.45';
+            doBtn.style.cursor = ok ? 'pointer' : 'not-allowed';
+        });
+
+        cancelBtn.addEventListener('click', closeRestartModal);
+        closeBtn.addEventListener('click', closeRestartModal);
+        restartModal.addEventListener('click', function (e) {
+            if (e.target === restartModal) closeRestartModal();
+        });
+
+        doBtn.addEventListener('click', function () {
+            if (confirmInput.value !== 'CONFIRMAR') return;
+            doBtn.disabled = true;
+            doBtn.textContent = 'Reiniciando…';
+            resultDiv.style.display = 'none';
+
+            const mq = (window.MS && window.MS.machineQuery) ? window.MS.machineQuery('&') : '';
+            const machineId = mq ? new URLSearchParams(mq.replace(/^&/, '')).get('machine_id') : null;
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+            fetch('/api/restart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ confirm: 'CONFIRMAR', machine_id: machineId })
+            })
+            .then(r => r.json())
+            .then(data => {
+                const ok = data.output && !data.output.toLowerCase().includes('error');
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = ok ? 'rgba(39,174,96,0.12)' : 'rgba(192,57,43,0.12)';
+                resultDiv.style.border = ok ? '1px solid #27ae60' : '1px solid #c0392b';
+                resultDiv.style.color = ok ? '#2ecc71' : '#e74c3c';
+                resultDiv.textContent = data.output || data.error || 'Comando enviado.';
+                doBtn.textContent = 'Reiniciar ahora';
+            })
+            .catch(() => {
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = 'rgba(192,57,43,0.12)';
+                resultDiv.style.border = '1px solid #c0392b';
+                resultDiv.style.color = '#e74c3c';
+                resultDiv.textContent = 'Error de red al enviar el comando.';
+                doBtn.textContent = 'Reiniciar ahora';
+                doBtn.disabled = false;
+                doBtn.style.opacity = '1';
+            });
+        });
+
+        // Exponer para que el handler genérico lo use
+        window._openRestartModal = openRestartModal;
+    })();
+
     document.querySelectorAll('.action-btn').forEach(button => {
         button.addEventListener('click', function() {
             const action = this.getAttribute('data-action');
@@ -707,6 +786,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (!isConnected) {
                 alert('No hay conexión con el servidor. Intente nuevamente más tarde.');
+                return;
+            }
+
+            if (action === 'restart') {
+                if (window._openRestartModal) window._openRestartModal();
                 return;
             }
 

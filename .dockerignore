@@ -9,7 +9,6 @@ __pycache__/
 .github/
 .vscode/
 .idea/
-.claude/
 .pytest_cache/
 htmlcov/
 coverage.xml

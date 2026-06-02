@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 # TLS opcional: se activa si PS_TLS_ENABLED=true y PS_SERVER_CA_CERT apunta al CA.
 _TLS_ENABLED = os.getenv('PS_TLS_ENABLED', 'false').lower() == 'true'
-_TLS_CA_CERT  = os.getenv('PS_SERVER_CA_CERT', '')
+_TLS_CA_CERT = os.getenv('PS_SERVER_CA_CERT', '')
 
 if _TLS_ENABLED:
     logger.info("Comunicación PowerShell en modo TLS")
@@ -130,10 +130,10 @@ class PowerShellClient:
 
     def __init__(self, host: str, port: int, timeout: int = None,
                  tls: bool = False, ca_cert: str = None):
-        self.host    = host
-        self.port    = port
+        self.host = host
+        self.port = port
         self.timeout = timeout or Config.SOCKET_TIMEOUT
-        self.tls     = tls      # reservado: actualmente se controla via env PS_TLS_ENABLED
+        self.tls = tls      # reservado: actualmente se controla via env PS_TLS_ENABLED
         self.ca_cert = ca_cert  # reservado: actualmente se controla via env PS_SERVER_CA_CERT
 
     def send_command(self, command: str) -> str:

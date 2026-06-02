@@ -1,4 +1,4 @@
-# tests/unit/test_models.py
+﻿# tests/unit/test_models.py
 """Tests unitarios para los métodos de los modelos ORM (sin acceso a BD).
 
 Comprueba lógica pura: set_password, check_password, to_dict, cálculos
@@ -10,7 +10,7 @@ import pytest
 from datetime import datetime
 
 os.environ.setdefault('SECRET_KEY', 'test_secret')
-os.environ.setdefault('ADMIN_PASSWORD', 'admin12345678')
+os.environ.setdefault('ADMIN_PASSWORD', 'Admin12345678!')
 os.environ.setdefault('FIELD_ENCRYPTION_KEY', 'test_field_encryption_key_32bytes!!')
 os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 

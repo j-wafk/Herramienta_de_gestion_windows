@@ -38,7 +38,19 @@ class Config:
     PARTITION_OPERATIONS_ALLOWED = os.getenv('PARTITION_OPS', 'True').lower() == 'true'
 
     # Base de datos (PostgreSQL)
-    DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://gestion:gestion@localhost:5432/gestion_db')
+    # Si DATABASE_URL está definida se usa directamente (Railway, Heroku, Docker, tests…).
+    # En caso contrario se construye desde los componentes individuales y DB_PASSWORD
+    # es obligatoria (no hay contraseña hardcodeada en el código fuente).
+    _db_url_env = os.getenv('DATABASE_URL', '')
+    if _db_url_env:
+        DATABASE_URL = _db_url_env
+    else:
+        _DB_USER = os.getenv('DB_USER', 'gestion')
+        _DB_PASSWORD = _require_env('DB_PASSWORD', "Contraseña de PostgreSQL. Añádela al .env.")
+        _DB_HOST = os.getenv('DB_HOST', 'localhost')
+        _DB_PORT = os.getenv('DB_PORT', '5432')
+        _DB_NAME = os.getenv('DB_NAME', 'gestion_db')
+        DATABASE_URL = f'postgresql://{_DB_USER}:{_DB_PASSWORD}@{_DB_HOST}:{_DB_PORT}/{_DB_NAME}'
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -53,7 +65,7 @@ class Config:
     )
 
     # Autenticación — bootstrap superadmin
-    ADMIN_USER     = os.getenv('ADMIN_USER', 'admin')
+    ADMIN_USER = os.getenv('ADMIN_USER', 'admin')
     ADMIN_PASSWORD = _require_env(
         'ADMIN_PASSWORD',
         "Contraseña para el superadmin inicial. Mínimo 12 caracteres."
@@ -62,13 +74,13 @@ class Config:
     # ──────────────── SMTP / Notificaciones por email ─────────────────
     # MAIL_ENABLED=false desactiva por completo el envío (no-op en send_email).
     # En dev sin MailHog déjalo en false para que la app no intente conectar.
-    MAIL_ENABLED   = os.getenv('MAIL_ENABLED', 'false').lower() == 'true'
-    SMTP_HOST      = os.getenv('SMTP_HOST', 'localhost')
-    SMTP_PORT      = int(os.getenv('SMTP_PORT', 25))
-    SMTP_USER      = os.getenv('SMTP_USER', '')
-    SMTP_PASSWORD  = os.getenv('SMTP_PASSWORD', '')
-    SMTP_USE_TLS   = os.getenv('SMTP_USE_TLS', 'false').lower() == 'true'   # STARTTLS (587)
-    SMTP_USE_SSL   = os.getenv('SMTP_USE_SSL', 'false').lower() == 'true'   # SMTPS (465)
-    SMTP_TIMEOUT   = int(os.getenv('SMTP_TIMEOUT', 10))
-    MAIL_FROM      = os.getenv('MAIL_FROM', 'alertas@gestion.local')
+    MAIL_ENABLED = os.getenv('MAIL_ENABLED', 'false').lower() == 'true'
+    SMTP_HOST = os.getenv('SMTP_HOST', 'localhost')
+    SMTP_PORT = int(os.getenv('SMTP_PORT', 25))
+    SMTP_USER = os.getenv('SMTP_USER', '')
+    SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
+    SMTP_USE_TLS = os.getenv('SMTP_USE_TLS', 'false').lower() == 'true'   # STARTTLS (587)
+    SMTP_USE_SSL = os.getenv('SMTP_USE_SSL', 'false').lower() == 'true'   # SMTPS (465)
+    SMTP_TIMEOUT = int(os.getenv('SMTP_TIMEOUT', 10))
+    MAIL_FROM = os.getenv('MAIL_FROM', 'alertas@gestion.local')
     MAIL_FROM_NAME = os.getenv('MAIL_FROM_NAME', 'Control Remoto Windows')

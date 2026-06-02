@@ -167,10 +167,10 @@ def _persist_metrics_remote(app):
                     cpu_raw = send_command_to_machine('cpu', m.ip, m.port)
                     low = (cpu_raw or '').lower()
                     if ('no se pudo conectar' in low or
-                        'error conectando' in low):
+                            'error conectando' in low):
                         return None
-                    mem_raw  = send_command_to_machine('memory', m.ip, m.port)
-                    disk_raw = send_command_to_machine('disk',   m.ip, m.port)
+                    mem_raw = send_command_to_machine('memory', m.ip, m.port)
+                    disk_raw = send_command_to_machine('disk', m.ip, m.port)
                     return {
                         'id':     m.id,
                         'cpu':    parse_cpu_output(cpu_raw),
@@ -242,7 +242,7 @@ def background_data_refresh(cache_manager, app=None):
             # Actualizar procesos (slow command — refresh every 2 cycles / ~10 s)
             if _cycle % 2 == 0 and not cache_manager.is_cache_valid("processes"):
                 proc_output = send_command_to_powershell('process')
-                proc_value  = parse_process_output(proc_output)
+                proc_value = parse_process_output(proc_output)
                 if proc_value:
                     cache_manager.update_cache("processes", proc_value)
                     logger.debug(f"Procesos actualizados: {len(proc_value)} entradas")

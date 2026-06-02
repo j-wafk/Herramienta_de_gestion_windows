@@ -13,7 +13,12 @@ from datetime import datetime
 from types import SimpleNamespace
 
 # Asegura que la raíz del proyecto esté en el path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, _ROOT)
+
+# Carga el .env antes de importar config (para ejecución local sin Docker)
+from dotenv import load_dotenv
+load_dotenv(os.path.join(_ROOT, '.env'))
 
 from main import create_app
 from utils.mailer import send_email

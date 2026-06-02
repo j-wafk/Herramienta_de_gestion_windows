@@ -18,10 +18,21 @@
         }
         .usr-section-title { font-size: 14px; font-weight: 600; color: #2f3136; display: flex; align-items: center; gap: 8px; }
 
+        .usr-table-wrapper {
+            overflow-y: auto;
+            overflow-x: auto;
+            max-height: 60vh;
+        }
+        .usr-table-wrapper::-webkit-scrollbar { width: 6px; height: 6px; }
+        .usr-table-wrapper::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+        .usr-table-wrapper::-webkit-scrollbar-thumb { background: #c5c5c5; border-radius: 3px; }
+        .usr-table-wrapper::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
         .usr-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .usr-table thead th {
             padding: 10px 16px; text-align: left; font-weight: 600; font-size: 12px;
             color: #53565c; border-bottom: 1px solid #e8e8e8; background: #fafafa;
+            position: sticky; top: 0; z-index: 1;
         }
         .usr-table tbody tr { transition: background 0.1s; }
         .usr-table tbody tr td { padding: 11px 16px; border-bottom: 1px solid #f0f0f0; color: #35383d; }
@@ -41,6 +52,12 @@
         }
         .usr-status-dot.active   { background: #2EA043; }
         .usr-status-dot.inactive { background: #9ca3af; }
+        .usr-status-dot.locked   { background: #dc2626; }
+        .usr-lock-badge {
+            display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px;
+            font-weight: 600; background: #fff0f0; color: #b91c1c; border: 1px solid #fca5a5;
+            margin-left: 6px;
+        }
 
         .usr-action-btn {
             padding: 4px 12px; border-radius: 5px; border: 1px solid; font-size: 12px;
@@ -50,6 +67,8 @@
         .usr-action-btn.edit:hover { background: #dbeafe; }
         .usr-action-btn.delete { background: #fff0f0; color: #dc2626; border-color: #fca5a5; }
         .usr-action-btn.delete:hover { background: #fee2e2; }
+        .usr-action-btn.unlock { background: #fef3c7; color: #92400e; border-color: #fde68a; margin-right: 4px; }
+        .usr-action-btn.unlock:hover { background: #fde68a; }
         .usr-action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
         .usr-add-btn {
@@ -206,6 +225,7 @@
                     </button>
                     {% endif %}
                 </div>
+                <div class="usr-table-wrapper">
                 <table class="usr-table">
                     <thead>
                         <tr>
@@ -221,6 +241,8 @@
                     <tbody id="usrTableBody">
                         {% for u in users %}
                         {% set can_edit = current_user.role == 'superadmin' or u.role != 'superadmin' or u.id == current_user.id %}
+                        {% set is_locked = u.locked_until and u.locked_until > now_utc %}
+                        {% set can_unlock = is_locked and (current_user.role == 'superadmin' or u.role != 'superadmin') %}
                         <tr data-id="{{ u.id }}"
                             data-username="{{ u.username }}"
                             data-role="{{ u.role }}"
@@ -238,12 +260,21 @@
                             </td>
                             <td><span class="usr-role-badge {{ u.role }}">{{ u.role }}</span></td>
                             <td>
+                                {% if is_locked %}
+                                <span class="usr-status-dot locked"></span>
+                                Bloqueado
+                                <span class="usr-lock-badge" data-lock-utc="{{ u.locked_until.isoformat() }}Z">hasta <time data-utc="{{ u.locked_until.isoformat() }}Z" data-fmt="time">{{ u.locked_until.strftime('%H:%M') }}</time></span>
+                                {% else %}
                                 <span class="usr-status-dot {{ 'active' if u.is_active else 'inactive' }}"></span>
                                 {{ 'Activo' if u.is_active else 'Inactivo' }}
+                                {% endif %}
                             </td>
                             <td>{{ u.created_at.strftime('%d/%m/%Y') if u.created_at else '—' }}</td>
-                            <td>{{ u.last_login.strftime('%d/%m/%Y %H:%M') if u.last_login else 'Nunca' }}</td>
+                            <td>{% if u.last_login %}<time data-utc="{{ u.last_login.isoformat() }}Z">{{ u.last_login.strftime('%d/%m/%Y %H:%M') }}</time>{% else %}Nunca{% endif %}</td>
                             <td>
+                                {% if can_unlock %}
+                                <button class="usr-action-btn unlock" data-action="unlock" data-id="{{ u.id }}">Desbloquear</button>
+                                {% endif %}
                                 {% if can_edit %}
                                 <button class="usr-action-btn edit" data-action="edit" data-id="{{ u.id }}">Editar</button>
                                 {% endif %}
@@ -259,6 +290,7 @@
                 <div id="usrNoResults" style="display:none;padding:24px;text-align:center;color:#6b7280;font-size:13px">
                     Ningún usuario coincide con la búsqueda.
                 </div>
+                </div><!-- /.usr-table-wrapper -->
             </div>
         </main>
     </div>
@@ -475,6 +507,20 @@ async function deleteUser(id, username) {
     }
 }
 
+// ── Unlock ────────────────────────────────────────────────────────────────────
+async function unlockUser(id, username) {
+    if (!confirm(`¿Desbloquear la cuenta de "${username}"?`)) return;
+    try {
+        const r = await fetch(`/auth/api/usuarios/${id}/unlock`, { method: 'POST' });
+        const data = await r.json();
+        if (!r.ok) { showMsg('usrMsg', data.error || 'Error al desbloquear', 'error'); return; }
+        showMsg('usrMsg', 'Cuenta desbloqueada.', 'success');
+        setTimeout(() => location.reload(), 1000);
+    } catch {
+        showMsg('usrMsg', 'Error de conexión', 'error');
+    }
+}
+
 // ── Delegated click handler para Editar/Eliminar ─────────────────────────────
 // Evita el lío de comillas con onclick inline (especialmente cuando los datos
 // contienen apóstrofes, comillas o se usa |tojson) — lee data-* de la fila.
@@ -495,6 +541,8 @@ document.getElementById('usrTableBody')?.addEventListener('click', (ev) => {
         openEditModal(id, username, role, active, fullName, email);
     } else if (btn.dataset.action === 'delete') {
         deleteUser(id, username);
+    } else if (btn.dataset.action === 'unlock') {
+        unlockUser(id, username);
     }
 });
 
@@ -525,6 +573,19 @@ function filterUsers() {
         (visible === 0 && rows.length > 0) ? 'block' : 'none';
 }
 usrSearch?.addEventListener('input', filterUsers);
+
+// Convertir timestamps UTC a hora local del navegador
+document.querySelectorAll('time[data-utc]').forEach(el => {
+    const d = new Date(el.dataset.utc);
+    if (isNaN(d)) return;
+    if (el.dataset.fmt === 'time') {
+        el.textContent = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        const badge = el.closest('[data-lock-utc]');
+        if (badge) badge.title = 'Bloqueado hasta ' + d.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } else {
+        el.textContent = d.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+});
 </script>
 <script src="{{ url_for('static', filename='js/profile_modal.js') }}"></script>
 <script src="{{ url_for('static', filename='js/csrf.js') }}"></script>

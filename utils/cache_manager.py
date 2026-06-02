@@ -1,7 +1,8 @@
-# utils/cache_manager.py
+﻿# utils/cache_manager.py
 import time
 import threading
 from config import Config
+
 
 class CacheManager:
     def __init__(self):
@@ -14,22 +15,22 @@ class CacheManager:
             "partitions": {"timestamp": 0, "data": {}}
         }
         self.lock = threading.Lock()
-    
+
     def is_cache_valid(self, cache_key):
-        """Verifica si el caché es válido"""
+        """Verifica si el cache es valido"""
         current_time = time.time()
         return (current_time - self.cache[cache_key]["timestamp"]) <= Config.CACHE_TIME
-    
+
     def get_cache_data(self, cache_key):
-        """Obtiene datos del caché"""
+        """Obtiene datos del cache"""
         with self.lock:
             return self.cache[cache_key]["data"]
-    
+
     def update_cache(self, cache_key, data):
-        """Actualiza el caché con nuevos datos"""
+        """Actualiza el cache con nuevos datos"""
         with self.lock:
             self.cache[cache_key]["timestamp"] = time.time()
-            
+
             if cache_key in ["cpu", "memory"]:
                 # Para CPU y memoria, mantener historial
                 self.cache[cache_key]["data"]["value"] = data
@@ -38,9 +39,9 @@ class CacheManager:
             else:
                 # Para otros datos, simplemente actualizar
                 self.cache[cache_key]["data"] = data
-    
+
     def get_all_system_data(self):
-        """Obtiene todos los datos del sistema desde el caché"""
+        """Obtiene todos los datos del sistema desde el cache"""
         with self.lock:
             return {
                 "cpu": self.cache["cpu"]["data"],

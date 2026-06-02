@@ -1,4 +1,4 @@
-"""Fixtures compartidas para tests de integración.
+﻿"""Fixtures compartidas para tests de integración.
 
 Estas fixtures son de ámbito módulo: cada archivo de test obtiene su propio
 cliente autenticado. Esto evita:
@@ -31,7 +31,7 @@ def module_auth_client(module_app):
     with module_app.test_client() as client:
         resp = client.post('/auth/login', data={
             'username': 'admin',
-            'password': 'admin12345678',
+            'password': 'Admin12345678!',
         }, follow_redirects=False)
         assert resp.status_code == 302, (
             f"Login falló en fixture module_auth_client: "

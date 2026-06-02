@@ -44,19 +44,19 @@ def create_app():
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_for=1)
 
     # Cookies de sesión seguras
-    app.config['SESSION_COOKIE_HTTPONLY']   = True
-    app.config['SESSION_COOKIE_SAMESITE']   = 'Lax'
-    app.config['SESSION_COOKIE_SECURE']     = not Config.DEBUG  # True en producción
-    app.config['REMEMBER_COOKIE_SECURE']    = not Config.DEBUG
-    app.config['REMEMBER_COOKIE_HTTPONLY']  = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_COOKIE_SECURE'] = not Config.DEBUG  # True en producción
+    app.config['REMEMBER_COOKIE_SECURE'] = not Config.DEBUG
+    app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 
     # Sesión permanente con expiración de 8 horas; el before_request añade
     # inactividad máxima de 30 minutos para mayor seguridad.
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
 
     # Configuración CSRF
-    app.config['WTF_CSRF_TIME_LIMIT']  = 3600   # 1 hora
-    app.config['WTF_CSRF_SSL_STRICT']  = not Config.DEBUG  # En producción, tokens solo de HTTPS
+    app.config['WTF_CSRF_TIME_LIMIT'] = 3600   # 1 hora
+    app.config['WTF_CSRF_SSL_STRICT'] = not Config.DEBUG  # En producción, tokens solo de HTTPS
 
     # Configurar logging — app.log también vive en logs/ para que el bind
     # mount de Docker lo persista a través de down/up.
@@ -228,7 +228,7 @@ def create_app():
     background_thread.start()
     logger.info("Hilo de actualización en segundo plano iniciado")
 
-    # Arrancar poller de servicios monitorizados (TCP/UDP a IP:puerto)
+    # Arrancar poller de servicios monitorizados (TCP/UDP/HTTPS a IP:puerto)
     try:
         start_monit_poller(app)
     except Exception as e:
@@ -306,7 +306,35 @@ def create_app():
 
     @app.errorhandler(429)
     def rate_limit_exceeded(error):
-        return jsonify({'error': 'Demasiados intentos. Espera un momento antes de volver a intentarlo.'}), 429
+        is_login = (request.endpoint == 'auth.login'
+                    or request.path.rstrip('/') == '/auth/login')
+
+        # En login, bloquea la cuenta 10 min para que el rate-limit por IP no
+        # se pueda sortear cambiando de IP, y avísala como cuenta bloqueada.
+        if is_login and request.method == 'POST':
+            from database.models import User
+            from utils.audit import log_action
+            username = (request.form.get('username') or '').strip()
+            if username:
+                try:
+                    user = User.query.filter_by(username=username).first()
+                    if user is not None:
+                        user.locked_until = datetime.utcnow() + timedelta(minutes=10)
+                        user.failed_attempts = 0
+                        db.session.commit()
+                        log_action('login_blocked_ratelimit', f'user:{username}',
+                                   'lock=10min')
+                except Exception:
+                    db.session.rollback()
+
+        msg = ('Cuenta bloqueada por demasiados intentos. '
+               'Inténtalo de nuevo en 10 minutos o pide a un administrador que la desbloquee.') \
+            if is_login else \
+            'Demasiados intentos. Espera un momento antes de volver a intentarlo.'
+
+        if is_login:
+            return render_template('auth/login.html', error=msg), 429
+        return jsonify({'error': msg}), 429
 
     return app
 
@@ -510,7 +538,15 @@ def _ensure_local_machine():
 
 def _ensure_superadmin():
     from database.models import User
+    from utils.validators import validate_password_strength
     if User.query.count() == 0:
+        try:
+            validate_password_strength(Config.ADMIN_PASSWORD)
+        except ValueError as e:
+            raise RuntimeError(
+                f"ADMIN_PASSWORD no cumple los requisitos de seguridad: {e}. "
+                "Corrígela en el .env antes de arrancar."
+            ) from e
         admin = User(
             username=Config.ADMIN_USER,
             role='superadmin',

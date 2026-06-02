@@ -15,8 +15,8 @@ from datetime import datetime, timedelta
 logger = logging.getLogger(__name__)
 
 POLL_INTERVAL_SEC = 5
-MAX_TRIES         = 5
-BATCH_SIZE        = 20    # cuántos correos máx procesar por ciclo
+MAX_TRIES = 5
+BATCH_SIZE = 20    # cuántos correos máx procesar por ciclo
 
 # tries=0..4 → segundos hasta el siguiente intento
 _BACKOFF_SEC = {1: 30, 2: 120, 3: 600, 4: 3600}

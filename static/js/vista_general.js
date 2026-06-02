@@ -55,6 +55,14 @@ function mq(sep) {
     return window.MS ? window.MS.machineQuery(sep) : '';
 }
 
+// Promedio de los valores > 0 del historial. Si no hay ninguno, devuelve fallback.
+function avgHistory(arr, fallback) {
+    if (!Array.isArray(arr) || arr.length === 0) return fallback;
+    const nonZero = arr.filter(v => v > 0);
+    if (nonZero.length === 0) return fallback;
+    return Math.round(nonZero.reduce((a, b) => a + b, 0) / nonZero.length);
+}
+
 async function safeFetch(url, signal) {
     try {
         const sep = url.includes('?') ? '&' : '?';
@@ -97,8 +105,9 @@ function updateCPU(data) {
     setText('cpuValue', pct + '%');
     const label = pct < 40 ? 'Carga media estable' : pct < 75 ? 'Carga moderada' : 'Carga alta';
     setText('cpuSub', label);
-    setText('perfCpuPct', pct + '%');
-    setBarWidth('perfCpuBar', pct);
+    const perfCpu = avgHistory(data.history, pct);
+    setText('perfCpuPct', perfCpu + '%');
+    setBarWidth('perfCpuBar', perfCpu);
 }
 
 function updateMemory(data) {
@@ -117,8 +126,9 @@ function updateMemory(data) {
         setText('memValue', pct + '%');
         setText('memSub', pct + '% en uso');
     }
-    setText('perfMemPct', pct + '%');
-    setBarWidth('perfMemBar', pct);
+    const perfMem = avgHistory(data.history, pct);
+    setText('perfMemPct', perfMem + '%');
+    setBarWidth('perfMemBar', perfMem);
 }
 
 function updateDisk(data) {
@@ -133,8 +143,9 @@ function updateDisk(data) {
 
     setText('diskValue', freeGB > 0 ? freeGB + ' GB' : Math.round(100 - usedPct) + '% libre');
     setText('diskSub', 'Espacio libre disponible');
-    setText('perfDiskPct', Math.round(usedPct) + '%');
-    setBarWidth('perfDiskBar', usedPct);
+    const perfDisk = avgHistory(data.history, usedPct);
+    setText('perfDiskPct', perfDisk + '%');
+    setBarWidth('perfDiskBar', perfDisk);
 
     const diskCard = document.getElementById('diskCard');
     if (usedPct > 90) diskCard && diskCard.classList.add('warn');

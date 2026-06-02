@@ -2,12 +2,12 @@ import re
 
 # ── Patrones base ──────────────────────────────────────────────────────────────
 
-_WINDOWS_PATH_RE  = re.compile(r'^[A-Za-z]:\\[\w\s\-\.\\/]+$')
-_SAFE_NAME_RE     = re.compile(r'^[\w\-]{1,64}$')
-_DISK_ID_RE       = re.compile(r'^disk\d{1,3}$', re.IGNORECASE)
-_PARTITION_ID_RE  = re.compile(r'^\d{1,3}$')
+_WINDOWS_PATH_RE = re.compile(r'^[A-Za-z]:\\[\w\s\-\.\\/]+$')
+_SAFE_NAME_RE = re.compile(r'^[\w\-]{1,64}$')
+_DISK_ID_RE = re.compile(r'^disk\d{1,3}$', re.IGNORECASE)
+_PARTITION_ID_RE = re.compile(r'^\d{1,3}$')
 _SCHEDULE_TIME_RE = re.compile(r'^\d{2}:\d{2}$')
-_ADAPTER_NAME_RE  = re.compile(r'^[\w\s\-\.\(\)]{1,64}$')  # incluye paréntesis (ej: vEthernet (WSL))
+_ADAPTER_NAME_RE = re.compile(r'^[\w\s\-\.\(\)]{1,64}$')  # incluye paréntesis (ej: vEthernet (WSL))
 
 # Direccion IPv4 estricta
 _IPV4_RE = re.compile(r'^(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)$')
@@ -19,15 +19,16 @@ _HOSTNAME_RE = re.compile(
 
 # ── Allowlists ─────────────────────────────────────────────────────────────────
 
-ALLOWED_BACKUP_TYPES    = {'full', 'incremental', 'differential'}
-ALLOWED_SCHEDULE_TYPES  = {'daily', 'weekly', 'monthly'}
-ALLOWED_JOB_SCHEDULES   = {'manual', 'daily', 'weekly', 'monthly'}
+ALLOWED_BACKUP_TYPES = {'full', 'incremental', 'differential'}
+ALLOWED_SCHEDULE_TYPES = {'daily', 'weekly', 'monthly'}
+ALLOWED_JOB_SCHEDULES = {'manual', 'daily', 'weekly', 'monthly'}
 ALLOWED_COMPRESS_LEVELS = {'low', 'normal', 'high', 'maximum'}
-ALLOWED_FILESYSTEMS     = {'NTFS', 'FAT32', 'exFAT', 'ReFS'}
-ALLOWED_DISK_TYPES      = {'MBR', 'GPT'}
+ALLOWED_FILESYSTEMS = {'NTFS', 'FAT32', 'exFAT', 'ReFS'}
+ALLOWED_DISK_TYPES = {'MBR', 'GPT'}
 ALLOWED_DESTINATION_TYPES = {'local', 'network', 'cloud', 'ftp'}
 
 # ── Funciones de validación ────────────────────────────────────────────────────
+
 
 def validate_windows_path(path, field_name: str) -> str:
     path = (path or '').strip()
@@ -83,6 +84,7 @@ def validate_id(value, field_name: str = 'id') -> int:
 
 
 _DRIVE_LETTER_RE = re.compile(r'^[A-Za-z]:?$')
+
 
 def validate_drive_letter(value) -> str:
     """Acepta 'D', 'd', 'D:', 'd:'. Devuelve la letra mayúscula sin ':'.

@@ -1,4 +1,4 @@
-# tests/integration/test_backup_history.py
+﻿# tests/integration/test_backup_history.py
 """
 Tests de poda del historial y supervivencia tras borrar el job.
 Usan SQLite en memoria; no necesitan PostgreSQL ni el servidor PowerShell.
@@ -8,7 +8,7 @@ import os
 # IMPORTANTE: configurar el entorno antes de importar `main`/`config`,
 # porque Config.DATABASE_URL se lee a nivel de clase al importar.
 os.environ.setdefault('SECRET_KEY', 'test_secret')
-os.environ.setdefault('ADMIN_PASSWORD', 'admin12345678')
+os.environ.setdefault('ADMIN_PASSWORD', 'Admin12345678!')
 os.environ.setdefault('FIELD_ENCRYPTION_KEY', 'test_field_encryption_key_32bytes!!')
 os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
 

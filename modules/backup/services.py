@@ -1,7 +1,7 @@
-# modules/backup/services.py
+﻿# modules/backup/services.py
 """
-Servicios de orquestación de backups: ejecución asíncrona con progreso real
-por polling y sincronización de tareas programadas con Task Scheduler.
+Servicios de orquestaciÃ³n de backups: ejecuciÃ³n asÃ­ncrona con progreso real
+por polling y sincronizaciÃ³n de tareas programadas con Task Scheduler.
 """
 import json
 import logging
@@ -13,13 +13,13 @@ from datetime import datetime, timedelta
 from flask import current_app
 
 from database import db
-from database.models import BackupRun, BackupJob, BackupDestination, Machine
+from database.models import BackupRun, BackupJob, BackupDestination
 from utils.powershell_client import resolve_and_send
 from .parsers import parse_backup_output, parse_size_output
 
 logger = logging.getLogger(__name__)
 
-# Tope máximo de entradas de historial por máquina.
+# Tope mÃ¡ximo de entradas de historial por mÃ¡quina.
 HISTORY_MAX_PER_MACHINE = 100
 
 
@@ -36,8 +36,8 @@ def _parse_iso_dt(value):
 
 
 def _create_run_from_entry(entry, job, machine_id, source_label):
-    """Construye un BackupRun a partir de un dict y lo añade a la sesión."""
-    started  = _parse_iso_dt(entry.get('started_at'))  or datetime.utcnow()
+    """Construye un BackupRun a partir de un dict y lo aÃ±ade a la sesiÃ³n."""
+    started = _parse_iso_dt(entry.get('started_at')) or datetime.utcnow()
     finished = _parse_iso_dt(entry.get('finished_at')) or started
     bytes_done = int(entry.get('bytes') or 0)
     files_done = int(entry.get('files') or 0)
@@ -68,7 +68,7 @@ def _create_run_from_entry(entry, job, machine_id, source_label):
 
 
 def _has_run_at(job_id, started, tolerance_sec=5):
-    """¿Existe ya una BackupRun para este job alrededor de este started_at?"""
+    """Â¿Existe ya una BackupRun para este job alrededor de este started_at?"""
     delta = timedelta(seconds=tolerance_sec)
     return (BackupRun.query
             .filter(BackupRun.job_id == job_id,
@@ -81,13 +81,13 @@ def import_scheduled_runs(machine_id: int) -> int:
     """Importa a `BackupRun` las ejecuciones realizadas por el Task Scheduler.
 
     Dos fuentes de datos:
-    1. JSON marker files que el script genera (rápido, primario).
+    1. JSON marker files que el script genera (rÃ¡pido, primario).
     2. Parseo de los log files de cada tarea (fallback robusto: Add-Content
        siempre escribe aunque haya problemas con permisos al crear JSON).
 
     Deduplicado por (job_id, started_at) con tolerancia de 5 s.
     """
-    # Mapa task_name → BackupJob de esta máquina
+    # Mapa task_name â†’ BackupJob de esta mÃ¡quina
     jobs = (BackupJob.query
             .filter_by(machine_id=machine_id)
             .filter(BackupJob.scheduled_task_name.isnot(None))
@@ -110,7 +110,7 @@ def import_scheduled_runs(machine_id: int) -> int:
             try:
                 entry = json.loads(line)
             except Exception as e:
-                logger.warning(f"import_scheduled_runs[{label}]: línea no parseable: {line!r} ({e})")
+                logger.warning(f"import_scheduled_runs[{label}]: lÃ­nea no parseable: {line!r} ({e})")
                 continue
             task = entry.get('task') or ''
             job = by_task.get(task)
@@ -119,7 +119,7 @@ def import_scheduled_runs(machine_id: int) -> int:
             started_iso = entry.get('started_at')
             started = _parse_iso_dt(started_iso) or datetime.utcnow()
             if _has_run_at(job.id, started):
-                continue  # ya importado por otra vía
+                continue  # ya importado por otra vÃ­a
             _create_run_from_entry(entry, job, machine_id, label)
             imported += 1
             affected_jobs.add(job.id)
@@ -129,14 +129,14 @@ def import_scheduled_runs(machine_id: int) -> int:
         out_json = resolve_and_send('pop_scheduled_runs', machine_id) or ''
         _process_jsonl(out_json, 'json')
     except Exception as e:
-        logger.warning(f"import_scheduled_runs: pop_scheduled_runs falló: {e}")
+        logger.warning(f"import_scheduled_runs: pop_scheduled_runs fallÃ³: {e}")
 
     # 2) Log files (no consume, deduplica por started_at)
     try:
         out_log = resolve_and_send('scan_scheduled_runs', machine_id) or ''
         _process_jsonl(out_log, 'log')
     except Exception as e:
-        logger.warning(f"import_scheduled_runs: scan_scheduled_runs falló: {e}")
+        logger.warning(f"import_scheduled_runs: scan_scheduled_runs fallÃ³: {e}")
 
     if imported:
         db.session.commit()
@@ -152,22 +152,22 @@ def import_scheduled_runs(machine_id: int) -> int:
         try:
             prune_history(machine_id)
         except Exception as e:
-            logger.warning(f"prune_history tras import falló: {e}")
+            logger.warning(f"prune_history tras import fallÃ³: {e}")
         logger.info(f"import_scheduled_runs: {imported} ejecuciones importadas (machine={machine_id})")
 
     return imported
 
 
 def prune_history(machine_id: int, keep: int = HISTORY_MAX_PER_MACHINE) -> int:
-    """Conserva sólo las `keep` últimas entradas de historial de la máquina.
+    """Conserva sÃ³lo las `keep` Ãºltimas entradas de historial de la mÃ¡quina.
 
-    Devuelve el número de runs eliminadas. Nunca borra una run en estado
-    'running' (podría romper un poller en curso).
+    Devuelve el nÃºmero de runs eliminadas. Nunca borra una run en estado
+    'running' (podrÃ­a romper un poller en curso).
     """
     total = BackupRun.query.filter_by(machine_id=machine_id).count()
     if total <= keep:
         return 0
-    # Identificar los IDs a conservar (los más recientes).
+    # Identificar los IDs a conservar (los mÃ¡s recientes).
     keep_ids = [r.id for r in (BackupRun.query
                 .filter_by(machine_id=machine_id)
                 .order_by(BackupRun.started_at.desc())
@@ -186,7 +186,7 @@ def prune_history(machine_id: int, keep: int = HISTORY_MAX_PER_MACHINE) -> int:
     return deleted
 
 
-# ── Helpers de comandos PS ─────────────────────────────────────────────────────
+# â”€â”€ Helpers de comandos PS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _quote(s):
     return '"' + str(s).replace('"', '') + '"'
@@ -208,14 +208,14 @@ def _ps_verify(machine_id, backup_path):
     return resolve_and_send(f'verify_backup {_quote(backup_path)}', machine_id)
 
 
-# ── Programación (Task Scheduler) ─────────────────────────────────────────────
+# â”€â”€ ProgramaciÃ³n (Task Scheduler) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class ScheduleError(RuntimeError):
     """Error al registrar la tarea en Task Scheduler. El mensaje incluye el output del PS."""
 
 
 def schedule_job_in_ps(job: BackupJob) -> str:
-    """Registra/actualiza la tarea en el Task Scheduler de la máquina del job.
+    """Registra/actualiza la tarea en el Task Scheduler de la mÃ¡quina del job.
 
     Devuelve el nombre real de la tarea (con prefijo GestionBackup_).
     Lanza ScheduleError con el output del PS si Windows rechaza el registro.
@@ -235,16 +235,16 @@ def schedule_job_in_ps(job: BackupJob) -> str:
     out = resolve_and_send(cmd, job.machine_id) or ''
     low = out.lower()
     if low.startswith('error') or 'error al registrar' in low or 'no aparece' in low:
-        logger.warning(f"schedule_backup falló: {out!r}")
+        logger.warning(f"schedule_backup fallÃ³: {out!r}")
         raise ScheduleError(out.strip())
     if 'programado exitosamente' in low or 'scheduled' in low:
         return f'GestionBackup_{job.name}'
-    logger.warning(f"schedule_backup respondió inesperado: {out!r}")
+    logger.warning(f"schedule_backup respondiÃ³ inesperado: {out!r}")
     raise ScheduleError(out.strip() or 'Respuesta inesperada del servidor PowerShell')
 
 
 def unschedule_job_in_ps(job: BackupJob):
-    """Elimina la tarea del Task Scheduler. Silencioso si no existía."""
+    """Elimina la tarea del Task Scheduler. Silencioso si no existÃ­a."""
     name = job.scheduled_task_name or f'GestionBackup_{job.name}'
     short = name.replace('GestionBackup_', '')
     if not short:
@@ -253,7 +253,7 @@ def unschedule_job_in_ps(job: BackupJob):
 
 
 def compute_next_run(schedule: str, hhmm: str, now=None) -> datetime:
-    """Calcula la próxima ejecución a partir de schedule y hora HH:MM."""
+    """Calcula la prÃ³xima ejecuciÃ³n a partir de schedule y hora HH:MM."""
     now = now or datetime.now()
     try:
         h, m = map(int, hhmm.split(':'))
@@ -270,7 +270,7 @@ def compute_next_run(schedule: str, hhmm: str, now=None) -> datetime:
             days_ahead = 7
         nxt += timedelta(days=days_ahead)
     elif schedule == 'monthly':
-        # Día 1 del mes siguiente (mismo comportamiento que PS)
+        # DÃ­a 1 del mes siguiente (mismo comportamiento que PS)
         if nxt.month == 12:
             nxt = nxt.replace(year=nxt.year + 1, month=1, day=1)
         else:
@@ -280,12 +280,12 @@ def compute_next_run(schedule: str, hhmm: str, now=None) -> datetime:
     return nxt
 
 
-# ── Ejecución asíncrona ────────────────────────────────────────────────────────
+# â”€â”€ EjecuciÃ³n asÃ­ncrona â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def start_backup_run(job: BackupJob, ad_hoc: bool = False) -> BackupRun:
     """Crea un BackupRun en estado 'running' y lanza un hilo que lo ejecuta."""
     if not ad_hoc and not job.enabled:
-        raise ValueError("El trabajo está desactivado. Actívalo antes de ejecutarlo.")
+        raise ValueError("El trabajo estÃ¡ desactivado. ActÃ­valo antes de ejecutarlo.")
 
     run = BackupRun(
         job_id=job.id,
@@ -311,7 +311,7 @@ def start_backup_run(job: BackupJob, ad_hoc: bool = False) -> BackupRun:
 
 
 def _execute_run(run_id: int, app):
-    """Hilo de ejecución del backup. Actualiza el BackupRun y, al final, el job."""
+    """Hilo de ejecuciÃ³n del backup. Actualiza el BackupRun y, al final, el job."""
     with app.app_context():
         run = db.session.get(BackupRun, run_id)
         if not run:
@@ -332,7 +332,7 @@ def _execute_run(run_id: int, app):
             return
         if dest.type != 'local':
             run.status = 'error'
-            run.error = f'Destinos de tipo {dest.type} no están soportados todavía.'
+            run.error = f'Destinos de tipo {dest.type} no estÃ¡n soportados todavÃ­a.'
             run.finished_at = datetime.utcnow()
             db.session.commit()
             return
@@ -351,9 +351,9 @@ def _execute_run(run_id: int, app):
             run.total_bytes_estimate = estimate.get('bytes') or 0
             db.session.commit()
         except Exception as e:
-            logger.warning(f"No se pudo estimar tamaño: {e}")
+            logger.warning(f"No se pudo estimar tamaÃ±o: {e}")
 
-        # Poller de progreso: mira el tamaño del destino mientras corre
+        # Poller de progreso: mira el tamaÃ±o del destino mientras corre
         stop_flag = {'stop': False}
 
         def _poll():
@@ -401,15 +401,26 @@ def _execute_run(run_id: int, app):
         run.output = output
         run.error = result.get('error')
         run.files_done = result.get('files_processed') or run.files_done
+        run.bytes_done = result.get('bytes_processed') or run.bytes_done
 
-        # Verificación opcional
+        # Medir tamaÃ±o real del destino tras la copia (mÃ¡s fiable que el parser)
+        if success:
+            try:
+                final_size = _ps_estimate(machine_id, backup_path)
+                if final_size.get('bytes'):
+                    run.bytes_done = final_size['bytes']
+                    run.files_done = final_size.get('files') or run.files_done
+            except Exception as e:
+                logger.debug(f"No se pudo medir destino final: {e}")
+
+        # VerificaciÃ³n opcional
         if success and job.verify_after:
             try:
                 verify_out = _ps_verify(machine_id, backup_path)
-                run.output = (run.output or '') + "\n\n--- Verificación ---\n" + (verify_out or '')
+                run.output = (run.output or '') + "\n\n--- VerificaciÃ³n ---\n" + (verify_out or '')
                 if 'verificado' not in (verify_out or '').lower():
                     success = False
-                    run.error = (run.error or '') + ' | Verificación falló'
+                    run.error = (run.error or '') + ' | VerificaciÃ³n fallÃ³'
             except Exception as e:
                 logger.warning(f"verify_backup error: {e}")
 
@@ -425,35 +436,36 @@ def _execute_run(run_id: int, app):
 
         db.session.commit()
 
-        # Notificaciones por email (encolan en EmailQueue; el worker las envía)
-        try:
-            from modules.notifications.dispatch import (
-                notify_backup_completed, notify_backup_failed,
-            )
-            from database.models import Machine
-            mach = db.session.get(Machine, machine_id)
-            mname = mach.name if mach else None
-            if success:
-                dur = run.duration_sec or 0
-                dur_str = f"{int(dur)} s" if dur < 90 else f"{dur/60:.1f} min"
-                files = int(run.files_done or 0)
-                bytes_done = int(run.bytes_done or 0)
-                size_str = (
-                    f"{bytes_done/1024/1024/1024:.2f} GB" if bytes_done >= (1<<30) else
-                    f"{bytes_done/1024/1024:.1f} MB"     if bytes_done >= (1<<20) else
-                    f"{bytes_done/1024:.1f} KB"          if bytes_done >= 1024    else
-                    f"{bytes_done} B"
+        # Notificaciones por email: solo si el job tiene notify=True
+        if job.notify:
+            try:
+                from modules.notifications.dispatch import (
+                    notify_backup_completed, notify_backup_failed,
                 )
-                notify_backup_completed(run, job.name, machine_name=mname,
-                                        size_str=size_str, files=files,
-                                        duration_str=dur_str)
-            else:
-                notify_backup_failed(run, job.name, machine_name=mname)
-        except Exception as e:                          # noqa: BLE001
-            logger.warning(f"notify backup falló: {e}")
+                from database.models import Machine
+                mach = db.session.get(Machine, machine_id)
+                mname = mach.name if mach else None
+                if success:
+                    dur = run.duration_sec or 0
+                    dur_str = f"{int(dur)} s" if dur < 90 else f"{dur/60:.1f} min"
+                    files = int(run.files_done or 0)
+                    bytes_done = int(run.bytes_done or 0)
+                    size_str = (
+                        f"{bytes_done/1024/1024/1024:.2f} GB" if bytes_done >= (1 << 30) else
+                        f"{bytes_done/1024/1024:.1f} MB" if bytes_done >= (1 << 20) else
+                        f"{bytes_done/1024:.1f} KB" if bytes_done >= 1024 else
+                        f"{bytes_done} B"
+                    )
+                    notify_backup_completed(run, job.name, machine_name=mname,
+                                            size_str=size_str, files=files,
+                                            duration_str=dur_str)
+                else:
+                    notify_backup_failed(run, job.name, machine_name=mname)
+            except Exception as e:                          # noqa: BLE001
+                logger.warning(f"notify backup fallÃ³: {e}")
 
-        # Poda del historial al máximo permitido por máquina
+        # Poda del historial al mÃ¡ximo permitido por mÃ¡quina
         try:
             prune_history(machine_id)
         except Exception as e:
-            logger.warning(f"prune_history falló: {e}")
+            logger.warning(f"prune_history fallÃ³: {e}")

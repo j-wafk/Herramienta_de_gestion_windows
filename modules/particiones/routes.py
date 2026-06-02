@@ -150,11 +150,11 @@ def execute_partition_operation():
         command = None
         try:
             if operation == 'create':
-                disk_id    = validate_disk_id(data.get('disk_id'))
-                size       = validate_numeric(data.get('size'), 'size', min_val=0.1, max_val=65536)
+                disk_id = validate_disk_id(data.get('disk_id'))
+                size = validate_numeric(data.get('size'), 'size', min_val=0.1, max_val=65536)
                 filesystem = validate_enum(data.get('filesystem'), ALLOWED_FILESYSTEMS, 'filesystem')
-                label      = validate_safe_name(data.get('label', 'Nueva'), 'label') if data.get('label') else ''
-                letter     = validate_drive_letter(data.get('letter', ''))
+                label = validate_safe_name(data.get('label', 'Nueva'), 'label') if data.get('label') else ''
+                letter = validate_drive_letter(data.get('letter', ''))
                 # Construir comando: si hay letra, label se vuelve obligatorio (placeholder
                 # vacío entre comillas) para mantener orden posicional.
                 parts = [f'create_partition {disk_id} {size} {filesystem}']
@@ -166,8 +166,8 @@ def execute_partition_operation():
 
             elif operation == 'format':
                 partition_id = validate_partition_id(data.get('partition_id'))
-                filesystem   = validate_enum(data.get('filesystem'), ALLOWED_FILESYSTEMS, 'filesystem')
-                label        = validate_safe_name(data.get('label', 'Volumen'), 'label') if data.get('label') else ''
+                filesystem = validate_enum(data.get('filesystem'), ALLOWED_FILESYSTEMS, 'filesystem')
+                label = validate_safe_name(data.get('label', 'Volumen'), 'label') if data.get('label') else ''
                 command = (
                     f'format_partition {partition_id} {filesystem} "{label}"'
                     if label else
@@ -180,7 +180,7 @@ def execute_partition_operation():
 
             elif operation == 'resize':
                 partition_id = validate_partition_id(data.get('partition_id'))
-                new_size     = validate_numeric(data.get('new_size'), 'new_size', min_val=0.1, max_val=65536)
+                new_size = validate_numeric(data.get('new_size'), 'new_size', min_val=0.1, max_val=65536)
                 command = f'resize_partition {partition_id} {new_size}'
 
             else:

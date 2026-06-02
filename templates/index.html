@@ -260,6 +260,27 @@
                         </div>
                     </div>
 
+                    <!-- Modal confirmación reinicio -->
+                    <div id="restartConfirmModal" class="modal" style="display:none">
+                        <div class="modal-content" style="max-width:420px">
+                            <span class="close-button" id="restartModalClose">✕</span>
+                            <div style="text-align:center;margin-bottom:12px">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            </div>
+                            <h3 style="color:#c0392b;text-align:center;margin:0 0 12px">Reiniciar Sistema</h3>
+                            <p style="margin:0 0 8px;font-size:0.9rem">Esta acción <strong>reiniciará el equipo inmediatamente</strong>. Todos los procesos en ejecución se cerrarán sin guardar.</p>
+                            <p style="margin:0 0 12px;font-size:0.9rem">Para confirmar, escribe <strong style="color:#c0392b">CONFIRMAR</strong> en el campo:</p>
+                            <input type="text" id="restartConfirmInput" placeholder="Escribe CONFIRMAR"
+                                autocomplete="off" spellcheck="false"
+                                style="width:100%;box-sizing:border-box;padding:8px 10px;background:var(--bg-input,#1a1a2e);color:var(--text,#e0e0e0);border:1px solid var(--border,#333);border-radius:6px;font-size:1rem;outline:none">
+                            <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+                                <button id="restartCancelBtn" class="qa-btn" style="flex:0 0 auto">Cancelar</button>
+                                <button id="restartDoBtn" class="qa-btn qa-danger" disabled style="flex:0 0 auto;opacity:0.45;cursor:not-allowed">Reiniciar ahora</button>
+                            </div>
+                            <div id="restartResult" style="display:none;margin-top:12px;padding:8px 10px;border-radius:6px;font-size:0.85rem"></div>
+                        </div>
+                    </div>
+
                     <!-- Modal -->
                     <div id="commandModal" class="modal">
                         <div class="modal-content">

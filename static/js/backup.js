@@ -170,6 +170,7 @@ document.addEventListener('DOMContentLoaded', function () {
             updateStatus('error');
             renderEmpty();
             toast('No se pudieron cargar los datos: ' + e.message, true);
+            refreshSummary();
         }
         // Historial se gestiona aparte (paginado + cache)
         await reloadHistory();
@@ -235,13 +236,52 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ── Render ───────────────────────────────────────────────────────
+    function fmtRelative(isoStr) {
+        if (!isoStr) return '—';
+        const diff = Date.now() - new Date(isoStr).getTime();
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1)  return 'Hace menos de 1 min';
+        if (mins < 60) return `Hace ${mins} min`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24)  return `Hace ${hrs} h`;
+        const days = Math.floor(hrs / 24);
+        return `Hace ${days} días`;
+    }
+
     function renderSummary(s) {
-        const total = document.getElementById('totalBackups');
-        const last  = document.getElementById('lastBackupDate');
-        const days  = document.getElementById('lastBackupDays');
+        const total  = document.getElementById('totalBackups');
+        const last   = document.getElementById('lastBackupDate');
+        const age    = document.getElementById('lastBackupAge');
+        const dot    = document.getElementById('lastBackupStatusDot');
         if (total) total.textContent = s.total_jobs ?? 0;
         if (last)  last.textContent  = s.last_backup ? fmtDate(s.last_backup) : '—';
-        if (days)  days.textContent  = s.days_since != null ? s.days_since : '—';
+        if (age)   age.textContent   = s.last_backup ? fmtRelative(s.last_backup) : '—';
+        if (dot) {
+            if (s.last_backup_status === 'completed') {
+                dot.style.display = 'inline-block';
+                dot.style.background = '#38B000';
+                dot.title = 'Última copia completada';
+            } else if (s.last_backup_status === 'error') {
+                dot.style.display = 'inline-block';
+                dot.style.background = '#dc2626';
+                dot.title = 'Última copia fallida';
+            } else if (s.last_backup_status === 'running') {
+                dot.style.display = 'inline-block';
+                dot.style.background = '#f59e0b';
+                dot.title = 'Copia en curso';
+            } else {
+                dot.style.display = 'none';
+            }
+        }
+    }
+
+    async function refreshSummary() {
+        try {
+            const s = await api('GET', '/api/backup/summary');
+            renderSummary(s);
+        } catch (e) {
+            console.warn('refreshSummary error', e);
+        }
     }
 
     function renderDestinations() {
@@ -342,10 +382,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<tr><td colspan="6" class="bk-empty">Sin historial en esta página.</td></tr>';
             return;
         }
+        const STATUS_LABEL = {
+            completed: 'Completado',
+            error:     'Fallido',
+            running:   'Ejecutando',
+            cancelled: 'Cancelado',
+        };
         historyTableBody.innerHTML = rows.map(h => {
             const cls = h.status === 'completed' ? 'completed'
-                      : h.status === 'error' ? 'error'
-                      : h.status === 'running' ? 'scheduled' : '';
+                      : h.status === 'error'     ? 'error'
+                      : h.status === 'running'   ? 'running'
+                      : h.status === 'cancelled' ? 'cancelled' : '';
             const restoreBtn = (canWrite && h.status === 'completed')
                 ? `<button class="job-action-btn" data-action="restore-h" data-id="${h.id}">Restaurar</button>` : '';
             const delBtn = canWrite
@@ -354,13 +401,14 @@ document.addEventListener('DOMContentLoaded', function () {
             const orphanTag = h.job_deleted
                 ? ' <span class="bk-tag-warn" title="El trabajo origen fue eliminado">huérfano</span>'
                 : '';
+            const label = STATUS_LABEL[h.status] || h.status;
             return `
                 <tr data-id="${h.id}"${rowClass}>
                     <td>${fmtDate(h.started_at)}</td>
                     <td>${escapeHtml(h.job_name)}${orphanTag}</td>
                     <td>${backupTypeLabel(h.backup_type)}</td>
                     <td>${fmtBytes(h.bytes_done)}</td>
-                    <td><span class="status-badge ${cls}">${h.status}</span></td>
+                    <td><span class="status-badge ${cls}">${label}</span></td>
                     <td>
                         <button class="job-action-btn" data-action="view-h" data-id="${h.id}">Ver</button>
                         ${restoreBtn}
@@ -408,7 +456,6 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('jobSchedule').value = job ? job.schedule : 'manual';
         document.getElementById('jobTime').value = job ? job.schedule_time : '02:00';
         document.getElementById('jobCompress').checked = job ? job.compress : true;
-        document.getElementById('jobEncrypt').checked  = job ? job.encrypt : false;
         document.getElementById('jobVerify').checked   = job ? job.verify_after : true;
         document.getElementById('jobNotify').checked   = job ? job.notify : false;
         // destino
@@ -432,7 +479,6 @@ document.addEventListener('DOMContentLoaded', function () {
             schedule:       document.getElementById('jobSchedule').value,
             schedule_time:  document.getElementById('jobTime').value,
             compress:       document.getElementById('jobCompress').checked,
-            encrypt:        document.getElementById('jobEncrypt').checked,
             verify_after:   document.getElementById('jobVerify').checked,
             notify:         document.getElementById('jobNotify').checked,
         };
@@ -479,6 +525,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const run  = resp.run;
             const job  = jobs.find(j => j.id === id);
             startProgress(run, job ? job.name : 'Backup');
+            // Muestra la entrada "Ejecutando" en el historial sin esperar a que termine
+            reloadHistory();
         } catch (e) {
             toast('Error al lanzar el backup: ' + e.message, true);
         }
@@ -516,13 +564,9 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('destinationPassword').value = '';
         document.getElementById('credentialsGroup').style.display =
             (dest && ['network', 'cloud', 'ftp'].includes(dest.type)) ? 'block' : 'none';
-        // Solo 'local' funcional: deshabilitar el resto
-        const typeSel = document.getElementById('destinationType');
-        Array.from(typeSel.options).forEach(opt => {
-            if (opt.value !== 'local') {
-                opt.disabled = false; // se permite guardar pero queda como "no soportado"
-                opt.textContent = opt.textContent.replace(/ \(no soportado\)$/, '') + ' (no soportado)';
-            }
+        // Solo 'local' está implementado; los demás tipos están deshabilitados
+        Array.from(document.getElementById('destinationType').options).forEach(opt => {
+            opt.disabled = opt.value !== 'local';
         });
         destinationModal.style.display = 'block';
     }
@@ -613,7 +657,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div class="detail-item"><strong>Ruta:</strong><span style="word-break:break-all">${escapeHtml(item.backup_path || '—')}</span></div>
                 </div>
                 ${item.error ? `<div class="detail-section"><h4>Error</h4><div class="detail-item"><span style="color:#d9534f">${escapeHtml(item.error)}</span></div></div>` : ''}
-                ${item.output ? `<div class="detail-section"><h4>Salida</h4><pre style="white-space:pre-wrap;max-height:200px;overflow:auto;background:#f3f4f6;padding:8px;border-radius:6px">${escapeHtml(item.output)}</pre></div>` : ''}
+                ${item.output ? `<div class="detail-section"><h4>Salida</h4><pre class="command-output" style="white-space:pre-wrap;max-height:200px;overflow:auto">${escapeHtml(item.output)}</pre></div>` : ''}
             `;
         }
         backupDetailsModal.dataset.runId = id;
@@ -681,8 +725,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (r.status !== 'running') {
                     clearInterval(pollTimer);
                     pollTimer = null;
-                    setTimeout(() => { progressPanel.style.display = 'none'; }, 2000);
                     await loadAll();
+                    progressPanel.style.display = 'none';
                 }
             } catch (e) {
                 console.warn('poll error', e);
@@ -700,6 +744,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (createBackupJobBtn) createBackupJobBtn.addEventListener('click', () => openJobModal(null));
         if (addDestinationBtn)  addDestinationBtn.addEventListener('click', () => openDestModal(null));
         if (refreshHistoryBtn)  refreshHistoryBtn.addEventListener('click', () => reloadHistory());
+        const refreshSummaryBtn = document.getElementById('refreshSummaryBtn');
+        if (refreshSummaryBtn)  refreshSummaryBtn.addEventListener('click', refreshSummary);
 
         // Buscador del historial (debounced)
         const searchInput = document.getElementById('historySearch');
@@ -748,7 +794,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (closeProgressBtn) closeProgressBtn.addEventListener('click', () => {
             progressPanel.style.display = 'none';
-            if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+            // No se cancela el poll: el backup sigue corriendo en background y
+            // al terminar (éxito o error) actualiza el summary y el historial.
         });
 
         // Modal trabajo

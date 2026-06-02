@@ -12,7 +12,6 @@ from datetime import datetime
 
 from flask import render_template
 
-from database import db
 from database.models import User, NotificationPreference
 from utils.mailer import send_email_async
 
@@ -60,7 +59,19 @@ def _ts_now():
     return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
-# ─── Eventos concretos ──────────────────────────────────────────────────
+_BACKUP_TYPE_LABELS = {
+    'full':         'Completa',
+    'complete':     'Completa',
+    'incremental':  'Incremental',
+    'differential': 'Diferencial',
+}
+
+def _backup_type_label(raw):
+    """Traduce el valor interno del tipo de backup a una etiqueta en español."""
+    return _BACKUP_TYPE_LABELS.get((raw or '').lower(), 'Completa')
+
+
+# â”€â”€â”€ Eventos concretos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def notify_machine_offline(machine):
     """Encola un email a cada usuario suscrito cuando una máquina pasa a offline."""
@@ -84,12 +95,12 @@ def notify_machine_offline(machine):
                             related_kind='machine_offline',
                             related_id=machine.id):
             sent += 1
-    logger.info('[notify] machine_offline %s → %d encolados', machine.name, sent)
+    logger.info('[notify] machine_offline %s â†’ %d encolados', machine.name, sent)
     return sent
 
 
 def notify_service_down(service, prev_status, machine_name=None):
-    """Encola un email cuando un MonitoredService pasa de up/warning → down."""
+    """Encola un email cuando un MonitoredService pasa de up/warning â†’ down."""
     recipients = _recipients_for('service_down')
     if not recipients:
         return 0
@@ -112,7 +123,7 @@ def notify_service_down(service, prev_status, machine_name=None):
                             related_kind='service_down',
                             related_id=service.id):
             sent += 1
-    logger.info('[notify] service_down %s → %d encolados', service.name, sent)
+    logger.info('[notify] service_down %s â†’ %d encolados', service.name, sent)
     return sent
 
 
@@ -126,9 +137,9 @@ def notify_backup_failed(run, job_name, machine_name=None):
             'emails/backup_failed.html',
             job_name=job_name,
             machine_name=machine_name,
-            started_at=run.started_at.strftime('%Y-%m-%d %H:%M:%S') if run.started_at else '—',
+            started_at=run.started_at.strftime('%Y-%m-%d %H:%M:%S') if run.started_at else 'â€”',
             finished_at=run.finished_at.strftime('%Y-%m-%d %H:%M:%S') if run.finished_at else None,
-            backup_type=getattr(run, 'backup_type_snapshot', None) or 'full',
+            backup_type=_backup_type_label(getattr(run, 'backup_type_snapshot', None)),
             error=run.error,
         )
     except Exception as e:                              # noqa: BLE001
@@ -141,12 +152,12 @@ def notify_backup_failed(run, job_name, machine_name=None):
                             related_kind='backup_failed',
                             related_id=run.id):
             sent += 1
-    logger.info('[notify] backup_failed run=%d → %d encolados', run.id, sent)
+    logger.info('[notify] backup_failed run=%d â†’ %d encolados', run.id, sent)
     return sent
 
 
 def notify_backup_completed(run, job_name, machine_name=None,
-                            size_str='—', files=0, duration_str='—'):
+                            size_str='â€”', files=0, duration_str='â€”'):
     """Cuando un BackupRun pasa a status='completed'."""
     recipients = _recipients_for('backup_completed')
     if not recipients:
@@ -156,12 +167,12 @@ def notify_backup_completed(run, job_name, machine_name=None,
             'emails/backup_completed.html',
             job_name=job_name,
             machine_name=machine_name,
-            started_at=run.started_at.strftime('%Y-%m-%d %H:%M:%S') if run.started_at else '—',
-            finished_at=run.finished_at.strftime('%Y-%m-%d %H:%M:%S') if run.finished_at else '—',
+            started_at=run.started_at.strftime('%Y-%m-%d %H:%M:%S') if run.started_at else 'â€”',
+            finished_at=run.finished_at.strftime('%Y-%m-%d %H:%M:%S') if run.finished_at else 'â€”',
             duration=duration_str,
             size=size_str,
             files=files,
-            backup_type=getattr(run, 'backup_type_snapshot', None) or 'full',
+            backup_type=_backup_type_label(getattr(run, 'backup_type_snapshot', None)),
         )
     except Exception as e:                              # noqa: BLE001
         logger.error('[notify] render backup_completed falló: %s', e)

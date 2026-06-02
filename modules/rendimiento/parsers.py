@@ -4,6 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def parse_cpu_output(text):
     """Parsea la salida del comando de CPU de PowerShell"""
     try:
@@ -12,37 +13,39 @@ def parse_cpu_output(text):
         match = re.search(r'CPU:\s*(\d+(\.\d+)?)%', text)
         if match:
             return float(match.group(1))
-        
+
         # Intentar otro patrón si el anterior falla
         match = re.search(r'(\d+(\.\d+)?)%', text)
         if match:
             return float(match.group(1))
-            
+
         logger.warning(f"No se pudo extraer valor de CPU del texto: {text}")
         return 0.0
     except Exception as e:
         logger.error(f"Error al parsear la salida de CPU: {str(e)}")
         return 0.0
 
+
 def parse_memory_output(text):
     """Parsea la salida del comando de memoria de PowerShell"""
     try:
         logger.debug(f"Parseando salida de memoria: {text}")
         # Buscar un número en el texto
-        match = re.search(r'memoria:\s*(\d+(\.\d+)?)%', text) 
+        match = re.search(r'memoria:\s*(\d+(\.\d+)?)%', text)
         if match:
             return float(match.group(1))
-            
+
         # Intentar otro patrón si el anterior falla
         match = re.search(r'(\d+(\.\d+)?)%', text)
         if match:
             return float(match.group(1))
-        
-        logger.warning(f"No se pudo extraer valor de memoria del texto: {text}")    
+
+        logger.warning(f"No se pudo extraer valor de memoria del texto: {text}")
         return 0.0
     except Exception as e:
         logger.error(f"Error al parsear la salida de memoria: {str(e)}")
         return 0.0
+
 
 def parse_disk_output(text):
     """Parsea la salida del comando de disco de PowerShell.
@@ -107,10 +110,10 @@ def _parse_pipe_format(lines):
         if len(parts) < 3:
             continue
         try:
-            name    = parts[0].strip()
-            pid     = parts[1].strip()
+            name = parts[0].strip()
+            pid = parts[1].strip()
             cpu_str = parts[2].strip().replace(',', '.')
-            memory  = parts[3].strip() if len(parts) > 3 else 'N/A'
+            memory = parts[3].strip() if len(parts) > 3 else 'N/A'
             if not name or not pid:
                 continue
             try:
@@ -118,7 +121,7 @@ def _parse_pipe_format(lines):
             except ValueError:
                 cpu_value = 0.0
             processes.append({"name": name, "pid": pid,
-                               "cpu": round(cpu_value, 2), "memory": memory})
+                              "cpu": round(cpu_value, 2), "memory": memory})
         except Exception as e:
             logger.warning(f"Error al parsear línea pipe: {line}. Error: {str(e)}")
     processes.sort(key=lambda x: x["cpu"], reverse=True)
@@ -146,16 +149,16 @@ def _parse_regex_format(lines):
         if not m:
             continue
         try:
-            name    = m.group(1).strip()
-            pid     = m.group(2).strip()
+            name = m.group(1).strip()
+            pid = m.group(2).strip()
             cpu_str = m.group(3).strip().replace(',', '.')
-            memory  = m.group(4).strip()
+            memory = m.group(4).strip()
             try:
                 cpu_value = float(cpu_str)
             except ValueError:
                 cpu_value = 0.0
             processes.append({"name": name, "pid": pid,
-                               "cpu": round(cpu_value, 2), "memory": memory})
+                              "cpu": round(cpu_value, 2), "memory": memory})
         except Exception as e:
             logger.warning(f"Error al parsear línea regex: {line}. Error: {str(e)}")
     processes.sort(key=lambda x: x["cpu"], reverse=True)

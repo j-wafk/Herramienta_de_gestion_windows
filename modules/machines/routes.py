@@ -12,8 +12,9 @@ from utils.audit import log_action
 machines_bp = Blueprint('machines', __name__)
 
 # Acepta IPv4 estricta, IPv6 simplificada (con `:`) o un nombre de host válido.
-_IP_RE   = re.compile(r'^\d{1,3}(\.\d{1,3}){3}$')
-_HOST_RE = re.compile(r'^[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$')
+_IP_RE = re.compile(r'^\d{1,3}(\.\d{1,3}){3}$')
+_HOST_RE = re.compile(
+    r'^[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$')
 
 
 def _valid_host(value):
@@ -41,7 +42,7 @@ def add_machine():
     """Registra una nueva máquina. superadmin, admin u operador."""
     data = request.get_json(silent=True) or {}
     name = (data.get('name') or '').strip()
-    ip   = (data.get('ip') or '').strip()
+    ip = (data.get('ip') or '').strip()
     if not name or not ip:
         return jsonify({'error': 'Se requieren los campos name e ip'}), 400
     if len(name) > 100:
@@ -86,7 +87,7 @@ def update_machine(machine_id):
             return jsonify({'error': 'name demasiado largo (máx 100)'}), 400
         machine.name = name
 
-    new_ip   = machine.ip
+    new_ip = machine.ip
     new_port = machine.port
     if 'ip' in data:
         v = (data['ip'] or '').strip()
@@ -110,7 +111,7 @@ def update_machine(machine_id):
         ).first()
         if clash:
             return jsonify({'error': f'Ya existe una máquina con IP {new_ip}:{new_port}'}), 409
-        machine.ip   = new_ip
+        machine.ip = new_ip
         machine.port = new_port
 
     if 'description' in data:

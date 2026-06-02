@@ -1,15 +1,15 @@
-# modules/hardware/routes.py
+﻿# modules/hardware/routes.py
 import json
 from datetime import datetime
-from flask import Blueprint, jsonify, request, Response, current_app
-from utils.powershell_client import resolve_and_send, send_command_to_powershell
+from flask import Blueprint, jsonify, request, Response
+from utils.powershell_client import resolve_and_send
 from config import Config
 from modules.auth.decorators import require_role
 
 hardware_bp = Blueprint('hardware', __name__)
 
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+# â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _mid():
     mid = request.args.get('machine_id')
@@ -24,7 +24,7 @@ def _send(command):
 
 def _parse_kv(text):
     """Parse 'key: value' lines into a dict, stripping UTF-8 BOM if present."""
-    text = (text or '').lstrip('﻿')
+    text = (text or '').lstrip('ï»¿')
     data = {}
     for line in text.strip().splitlines():
         if ': ' in line:
@@ -35,7 +35,7 @@ def _parse_kv(text):
 
 def _parse_pipe(text):
     """Parse pipe-delimited table into list of dicts, stripping BOM."""
-    text = (text or '').lstrip('﻿')
+    text = (text or '').lstrip('ï»¿')
     lines = text.strip().splitlines()
     if not lines:
         return []
@@ -66,7 +66,7 @@ def _get_machine(machine_id=None):
     return _get_local_machine()
 
 
-# ── live fetch helpers ────────────────────────────────────────────────────────
+# â”€â”€ live fetch helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _fetch_system():
     return _parse_kv(_send('hardware_system'))
@@ -125,7 +125,7 @@ def _fetch_devices():
     return _parse_pipe(_send('hardware_devices'))
 
 
-# ── snapshot DB helpers ───────────────────────────────────────────────────────
+# â”€â”€ snapshot DB helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _save_snapshot(machine, sys_data, cpu_data, mem_data, disks, gpu, mb, devices):
     from database.models import HardwareSnapshot
@@ -136,26 +136,26 @@ def _save_snapshot(machine, sys_data, cpu_data, mem_data, disks, gpu, mb, device
         snap = HardwareSnapshot(machine_id=machine.id)
         db.session.add(snap)
 
-    snap.timestamp        = datetime.utcnow()
-    snap.system_json      = json.dumps(sys_data,  ensure_ascii=False)
-    snap.cpu_json         = json.dumps(cpu_data,  ensure_ascii=False)
-    snap.memory_json      = json.dumps(mem_data,  ensure_ascii=False)
-    snap.disks_json       = json.dumps(disks,     ensure_ascii=False)
-    snap.gpu_json         = json.dumps(gpu,       ensure_ascii=False)
+    snap.timestamp = datetime.utcnow()
+    snap.system_json = json.dumps(sys_data,  ensure_ascii=False)
+    snap.cpu_json = json.dumps(cpu_data,  ensure_ascii=False)
+    snap.memory_json = json.dumps(mem_data,  ensure_ascii=False)
+    snap.disks_json = json.dumps(disks,     ensure_ascii=False)
+    snap.gpu_json = json.dumps(gpu,       ensure_ascii=False)
     snap.motherboard_json = json.dumps(mb,        ensure_ascii=False)
-    snap.devices_json     = json.dumps(devices,   ensure_ascii=False)
+    snap.devices_json = json.dumps(devices,   ensure_ascii=False)
     db.session.commit()
     return snap
 
 
-# ── endpoints ─────────────────────────────────────────────────────────────────
+# â”€â”€ endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @hardware_bp.route('/snapshot', methods=['GET'])
 def get_snapshot():
     """Load the latest hardware snapshot from DB (no PowerShell call)."""
     machine = _get_machine(_mid())
     if not machine:
-        return jsonify({'error': 'Máquina no encontrada'}), 404
+        return jsonify({'error': 'MÃ¡quina no encontrada'}), 404
 
     from database.models import HardwareSnapshot
     snap = HardwareSnapshot.query.filter_by(machine_id=machine.id).first()
@@ -171,15 +171,15 @@ def refresh_hardware():
     """Fetch live hardware data from PowerShell, save to DB, return it."""
     machine = _get_machine(_mid())
     if not machine:
-        return jsonify({'error': 'Máquina no encontrada'}), 404
+        return jsonify({'error': 'MÃ¡quina no encontrada'}), 404
 
     sys_data = _fetch_system()
     cpu_data = _fetch_cpu()
     mem_data = _fetch_memory()
-    disks    = _fetch_disks()
-    gpu      = _fetch_gpu()
-    mb       = _fetch_motherboard()
-    devices  = _fetch_devices()
+    disks = _fetch_disks()
+    gpu = _fetch_gpu()
+    mb = _fetch_motherboard()
+    devices = _fetch_devices()
 
     snap = _save_snapshot(machine, sys_data, cpu_data, mem_data, disks, gpu, mb, devices)
     return jsonify(snap.to_dict())
@@ -192,7 +192,7 @@ def get_memory_live():
     return jsonify(data)
 
 
-# ── individual live endpoints (kept for export and machine-specific use) ──────
+# â”€â”€ individual live endpoints (kept for export and machine-specific use) â”€â”€â”€â”€â”€â”€
 
 @hardware_bp.route('/system', methods=['GET'])
 def get_hardware_system():

@@ -1,9 +1,9 @@
-# tests/integration/test_audit_machine.py
+﻿# tests/integration/test_audit_machine.py
 """Tests para que log_action registre la máquina correcta."""
 import os
 
 os.environ.setdefault('SECRET_KEY', 'test_secret')
-os.environ.setdefault('ADMIN_PASSWORD', 'admin12345678')
+os.environ.setdefault('ADMIN_PASSWORD', 'Admin12345678!')
 os.environ.setdefault('FIELD_ENCRYPTION_KEY', 'test_field_encryption_key_32bytes!!')
 os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
 

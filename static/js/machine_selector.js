@@ -52,6 +52,16 @@
             'cursor:pointer;font-size:13px;}',
         '.ms-add-btn:hover{background:#1d4ed8;}',
         '.ms-empty{color:#94a3b8;font-size:13px;font-style:italic;padding:8px 0;}',
+        // dark mode overrides
+        'html[data-theme="dark"] .ms-modal-box h3{color:#e6edf3;}',
+        'html[data-theme="dark"] .ms-item{border-color:#30363d;}',
+        'html[data-theme="dark"] .ms-item .ms-name{color:#e6edf3;}',
+        'html[data-theme="dark"] .ms-item .ms-addr{color:#8b949e;}',
+        'html[data-theme="dark"] .ms-close{color:#8b949e;}',
+        'html[data-theme="dark"] .ms-close:hover{color:#e6edf3;}',
+        'html[data-theme="dark"] .ms-add-title{color:#c9d1d9;}',
+        'html[data-theme="dark"] hr.ms-hr{border-top-color:#30363d;}',
+        'html[data-theme="dark"] .ms-empty{color:#6e7681;}',
     ].join('');
 
     function injectCSS() {
@@ -126,8 +136,6 @@
         s.textContent = [
             '.conn-badge[data-status="online"]  svg, .conn-badge[data-status="online"]  svg * { fill: #38B000 !important; stroke: #38B000 !important; }',
             '.conn-badge[data-status="offline"] svg, .conn-badge[data-status="offline"] svg * { fill: #DC2626 !important; stroke: #DC2626 !important; }',
-            '.conn-badge[data-status="warning"] svg, .conn-badge[data-status="warning"] svg * { fill: #F59E0B !important; stroke: #F59E0B !important; }',
-            '.conn-badge[data-status="unknown"] svg, .conn-badge[data-status="unknown"] svg * { fill: #9CA3AF !important; stroke: #9CA3AF !important; }',
         ].join('\n');
         document.head.appendChild(s);
     }
@@ -137,11 +145,8 @@
         ensureBadgeCSS();
         var lbl   = document.getElementById('connLabel');
         var badge = document.querySelector('.conn-badge');
-        var key   = (status === 'online' || status === 'offline' || status === 'warning') ? status : 'unknown';
-        var text  = key === 'online'   ? 'CONECTADO'
-                  : key === 'offline'  ? 'DESCONECTADO'
-                  : key === 'warning'  ? 'AVISO'
-                  : 'DESCONOCIDO';
+        var key  = (status === 'online' || status === 'warning') ? 'online' : 'offline';
+        var text = key === 'online' ? 'CONECTADO' : 'DESCONECTADO';
         if (badge) badge.setAttribute('data-status', key);
         if (lbl)   lbl.textContent = text;
     }

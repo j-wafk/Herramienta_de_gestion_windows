@@ -10,7 +10,7 @@ from .background_tasks import background_data_refresh
 
 __all__ = [
     'CacheManager',
-    'send_command_to_powershell', 
+    'send_command_to_powershell',
     'health_check_powershell',
     'background_data_refresh'
 ]

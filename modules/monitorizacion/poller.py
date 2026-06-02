@@ -10,13 +10,13 @@ import logging
 import socket
 import threading
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 # Configuración por defecto
 POLL_INTERVAL_SEC = 30   # cada 30 s recorre todos los servicios
-SOCKET_TIMEOUT    = 3.0  # segundos por check
+SOCKET_TIMEOUT = 3.0  # segundos por check
 MAX_CHECKS_PER_SVC = 200  # poda
 
 
@@ -48,7 +48,7 @@ def _check_udp(ip, port, timeout=SOCKET_TIMEOUT):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.settimeout(timeout)
         s.sendto(b'\x00', (ip, int(port)))
-        # Intentar leer respuesta — si la hay, mejor confianza.
+        # Intentar leer respuesta â€” si la hay, mejor confianza.
         try:
             s.recvfrom(1024)
             ms = (time.monotonic() - t0) * 1000.0
@@ -64,8 +64,10 @@ def _check_udp(ip, port, timeout=SOCKET_TIMEOUT):
         return 'down', None, f'Error inesperado: {e}'
     finally:
         if s:
-            try: s.close()
-            except Exception: pass
+            try:
+                s.close()
+            except Exception:
+                pass
 
 
 def check_service(service):
@@ -96,7 +98,7 @@ def run_poll_cycle(app):
     """Ejecuta UN ciclo completo de checks para todos los servicios habilitados."""
     from database import db
     from database.models import MonitoredService, ServiceCheck, Machine
-    # Acumulador de eventos para disparar notificaciones DESPUÉS del commit
+    # Acumulador de eventos para disparar notificaciones DESPUÃ‰S del commit
     # (así nunca pierdes el cambio si el render del email falla)
     service_down_events = []   # tuplas (svc, prev_status, machine_name)
     machine_offline_events = []  # tuplas (machine,)
@@ -105,7 +107,7 @@ def run_poll_cycle(app):
         services = MonitoredService.query.filter_by(enabled=True).all()
         # Pre-cargar máquinas para resolver machine_name en eventos
         machines_by_id = {m.id: m for m in Machine.query.all()}
-        # Estados previos de máquinas para detectar online→offline
+        # Estados previos de máquinas para detectar onlineâ†’offline
         prev_machine_status = {m.id: m.status for m in machines_by_id.values()}
 
         now = datetime.utcnow()
@@ -116,22 +118,22 @@ def run_poll_cycle(app):
                 status, latency, msg = 'down', None, f'Excepción durante check: {e}'
 
             prev_status = svc.last_status
-            svc.last_status     = status
-            svc.last_check      = now
+            svc.last_status = status
+            svc.last_check = now
             svc.last_latency_ms = latency
-            svc.last_message    = msg
+            svc.last_message = msg
 
             # Crear ServiceCheck solo si cambia el estado
             if prev_status != status:
                 evt = ServiceCheck(
-                    service_id = svc.id,
-                    timestamp  = now,
-                    status     = status,
-                    message    = msg,
-                    latency_ms = latency,
+                    service_id=svc.id,
+                    timestamp=now,
+                    status=status,
+                    message=msg,
+                    latency_ms=latency,
                 )
                 db.session.add(evt)
-                logger.info(f"[monit] {svc.name} {svc.ip}:{svc.port} {prev_status}→{status}")
+                logger.info(f"[monit] {svc.name} {svc.ip}:{svc.port} {prev_status}â†’{status}")
 
                 # Encolamos notificación: servicio bajó a 'down' desde otro estado
                 if status == 'down' and prev_status != 'down':
@@ -175,7 +177,7 @@ def run_poll_cycle(app):
             logger.error(f"poll commit falló: {e}")
             return
 
-        # Disparar notificaciones DESPUÉS del commit (idempotente: cooldown
+        # Disparar notificaciones DESPUÃ‰S del commit (idempotente: cooldown
         # interno de send_email_async evita duplicados si flappea el estado).
         if service_down_events or machine_offline_events:
             try:

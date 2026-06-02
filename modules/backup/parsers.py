@@ -5,11 +5,12 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+
 def parse_backup_output(text):
     """Parsea la salida del comando de backup de PowerShell"""
     try:
         logger.debug(f"Parseando salida de backup: {text[:100]}...")
-        
+
         result = {
             "success": False,
             "files_processed": 0,
@@ -17,40 +18,45 @@ def parse_backup_output(text):
             "duration": "0 segundos",
             "error": None
         }
-        
+
         # Verificar si el backup fue exitoso
         if any(keyword in text.lower() for keyword in [
             'completado', 'completada', 'exitoso', 'exitosa', 'success', 'completed'
         ]):
             result["success"] = True
-        
+
         # Extraer número de archivos procesados
         files_match = re.search(r'(\d+)\s+archivos?\s+(procesados?|copiados?)', text, re.IGNORECASE)
         if files_match:
             result["files_processed"] = int(files_match.group(1))
-        
-        # Extraer tamaño procesado
-        size_match = re.search(r'(\d+(?:\.\d+)?)\s*(MB|GB|KB)', text, re.IGNORECASE)
+
+        # Extraer tamaño procesado y convertirlo a bytes
+        size_match = re.search(r'(\d+(?:\.\d+)?)\s*(GB|MB|KB|B)\b', text, re.IGNORECASE)
         if size_match:
-            result["size_processed"] = f"{size_match.group(1)} {size_match.group(2).upper()}"
-        
+            val = float(size_match.group(1))
+            unit = size_match.group(2).upper()
+            result["size_processed"] = f"{size_match.group(1)} {unit}"
+            multipliers = {'GB': 1024**3, 'MB': 1024**2, 'KB': 1024, 'B': 1}
+            result["bytes_processed"] = int(val * multipliers.get(unit, 1))
+
         # Extraer duración
         duration_match = re.search(r'(\d+(?:\.\d+)?)\s*(segundos?|minutos?|horas?)', text, re.IGNORECASE)
         if duration_match:
             result["duration"] = f"{duration_match.group(1)} {duration_match.group(2)}"
-        
+
         # Verificar errores
         if any(keyword in text.lower() for keyword in ['error', 'fallo', 'failed', 'falló']):
             result["success"] = False
             error_match = re.search(r'(error|fallo|failed):\s*(.+)', text, re.IGNORECASE)
             if error_match:
                 result["error"] = error_match.group(2).strip()
-        
+
         return result
-        
+
     except Exception as e:
         logger.error(f"Error al parsear la salida de backup: {str(e)}")
         return {"success": False, "error": str(e)}
+
 
 def parse_backup_list_output(text):
     """Parsea la salida del comando de lista de backups de PowerShell.
@@ -69,7 +75,7 @@ def parse_backup_list_output(text):
         backups = []
 
         # Mensaje "Sin backups..." → lista vacía
-        if any('sin backups' in l.lower() for l in lines[:2]):
+        if any('sin backups' in ln.lower() for ln in lines[:2]):
             return []
 
         for line in lines:
@@ -143,7 +149,7 @@ def parse_scheduled_tasks_output(text):
     """
     if not text:
         return []
-    lines = [l for l in text.splitlines() if l.strip()]
+    lines = [ln for ln in text.splitlines() if ln.strip()]
     if not lines:
         return []
 
@@ -185,11 +191,12 @@ def parse_scheduled_tasks_output(text):
         result.append(cur)
     return result
 
+
 def parse_compression_output(text):
     """Parsea la salida del comando de compresión de PowerShell"""
     try:
         logger.debug(f"Parseando salida de compresión: {text[:100]}...")
-        
+
         result = {
             "success": False,
             "original_size": "0 MB",
@@ -198,42 +205,42 @@ def parse_compression_output(text):
             "files_compressed": 0,
             "error": None
         }
-        
+
         # Verificar si la compresión fue exitosa
         if any(keyword in text.lower() for keyword in [
             'completado', 'completada', 'exitoso', 'exitosa', 'success', 'compressed'
         ]):
             result["success"] = True
-        
+
         # Extraer tamaño original
         original_match = re.search(r'tamaño original:\s*(\d+(?:\.\d+)?)\s*(MB|GB|KB)', text, re.IGNORECASE)
         if original_match:
             result["original_size"] = f"{original_match.group(1)} {original_match.group(2).upper()}"
-        
+
         # Extraer tamaño comprimido
         compressed_match = re.search(r'tamaño comprimido:\s*(\d+(?:\.\d+)?)\s*(MB|GB|KB)', text, re.IGNORECASE)
         if compressed_match:
             result["compressed_size"] = f"{compressed_match.group(1)} {compressed_match.group(2).upper()}"
-        
+
         # Extraer ratio de compresión
         ratio_match = re.search(r'compresión:\s*(\d+(?:\.\d+)?)%', text, re.IGNORECASE)
         if ratio_match:
             result["compression_ratio"] = f"{ratio_match.group(1)}%"
-        
+
         # Extraer número de archivos comprimidos
         files_match = re.search(r'(\d+)\s+archivos?\s+comprimidos?', text, re.IGNORECASE)
         if files_match:
             result["files_compressed"] = int(files_match.group(1))
-        
+
         # Verificar errores
         if any(keyword in text.lower() for keyword in ['error', 'fallo', 'failed', 'falló']):
             result["success"] = False
             error_match = re.search(r'(error|fallo|failed):\s*(.+)', text, re.IGNORECASE)
             if error_match:
                 result["error"] = error_match.group(2).strip()
-        
+
         return result
-        
+
     except Exception as e:
         logger.error(f"Error al parsear la salida de compresión: {str(e)}")
         return {"success": False, "error": str(e)}

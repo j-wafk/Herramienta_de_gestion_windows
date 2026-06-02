@@ -79,7 +79,10 @@ def log_action(action: str, resource: str, detail: str = '', machine_id=None):
     """Registra una acción en audit.log.
 
     Formato:
-        <timestamp> user=<u> ip=<ip> machine=<m> action=<a> resource=<r> [detail="..."]
+        <timestamp> user=<u> uid=<id> ip=<ip> machine=<m> action=<a> resource=<r> [detail="..."]
+
+    uid permite resolver el username actual aunque haya cambiado desde que se
+    escribió la línea. Ausente en acciones anónimas o de sistema.
 
     Si `machine_id` se pasa explícitamente, se usa esa máquina (útil cuando la
     acción se ejecuta fuera del request, ej. en un thread de fondo, o cuando la
@@ -91,10 +94,16 @@ def log_action(action: str, resource: str, detail: str = '', machine_id=None):
         from flask_login import current_user
         from flask import request, has_request_context
         if has_request_context():
-            user = current_user.username if current_user.is_authenticated else 'anonymous'
+            if current_user.is_authenticated:
+                user = current_user.username
+                uid  = current_user.id
+            else:
+                user = 'anonymous'
+                uid  = None
             ip = request.remote_addr or '-'
         else:
             user = 'system'
+            uid  = None
             ip = '-'
         if machine_id is not None:
             machine = _machine_label_from_id(machine_id) or 'local'
@@ -102,11 +111,13 @@ def log_action(action: str, resource: str, detail: str = '', machine_id=None):
             machine = _resolve_machine_label()
     except RuntimeError:
         user = 'system'
+        uid  = None
         ip = '-'
         machine = _machine_label_from_id(machine_id) or 'local' if machine_id is not None else 'local'
 
+    uid_part    = f' uid={uid}' if uid is not None else ''
     detail_part = f' detail="{detail}"' if detail else ''
     _audit.info(
-        f'user={user} ip={ip} machine={machine} '
+        f'user={user}{uid_part} ip={ip} machine={machine} '
         f'action={action} resource={resource}{detail_part}'
     )

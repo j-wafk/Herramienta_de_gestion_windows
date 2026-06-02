@@ -34,15 +34,38 @@ Esto instalará:
 ```
 tests/
 ├── __init__.py
-├── conftest.py                      # Fixtures globales
-├── unit/                            # Tests unitarios
+├── conftest.py                           # Fixtures globales (sesión, auth_client, mocks)
+├── unit/                                 # 13 archivos de tests unitarios
 │   ├── __init__.py
-│   ├── test_parsers_rendimiento.py # Tests de parsers
-│   └── test_cache_manager.py       # Tests de caché
-├── integration/                     # Tests de integración
+│   ├── test_parsers_rendimiento.py       # Parsers de métricas CPU/memoria/disco
+│   ├── test_parsers_backup.py            # Parsers de salida de backup
+│   ├── test_parsers_particiones.py       # Parsers de diskpart y discos físicos
+│   ├── test_cache_manager.py             # Caché en memoria (CacheManager)
+│   ├── test_encryption.py                # Cifrado Fernet de columnas (EncryptedString)
+│   ├── test_mailer.py                    # Envío SMTP síncrono (mailer.py)
+│   ├── test_mailer_worker.py             # Worker async con cola y backoff
+│   ├── test_probe.py                     # Sondas TCP/UDP/HTTPS (probe.py)
+│   ├── test_validators.py                # Validación de entradas (validators.py)
+│   ├── test_models.py                    # ORM y métodos to_dict / verificación de integridad
+│   ├── test_backup_services.py           # Servicios de backup (prune, import_runs…)
+│   ├── test_powershell_client.py         # Cliente TCP PowerShell (con/sin TLS)
+│   └── test_notifications_dispatch.py   # Despacho de notificaciones por email
+├── integration/                          # 13 archivos de tests de integración
 │   ├── __init__.py
-│   └── test_api_endpoints.py       # Tests de API
-└── fixtures/                        # Datos de prueba
+│   ├── conftest.py                       # Fixtures de módulo (module_app, module_auth_client)
+│   ├── test_api_endpoints.py             # Endpoints genéricos y health checks
+│   ├── test_auth_routes.py               # Autenticación, usuarios, perfil, audit log
+│   ├── test_particiones_routes.py        # /api/particiones/*
+│   ├── test_backup_routes.py             # /api/backup/* (destinos, trabajos, runs)
+│   ├── test_backup_history.py            # Poda de historial y supervivencia tras delete
+│   ├── test_hardware_routes.py           # /api/hardware/*
+│   ├── test_red_routes.py                # /api/red/*
+│   ├── test_rendimiento_routes.py        # /api/rendimiento/*
+│   ├── test_machines_routes.py           # /api/machines/*
+│   ├── test_monitorizacion_routes.py     # /api/monitorizacion/*
+│   ├── test_export_routes.py             # /api/export/*
+│   ├── test_notifications_routes.py      # /api/notifications/*
+│   └── test_audit_machine.py             # Auditoría por máquina
 ```
 
 ### Archivos de Configuración
@@ -225,8 +248,8 @@ open htmlcov/index.html
 
 ### Objetivo de Coverage
 
-- **Mínimo aceptable**: 70%
-- **Objetivo**: 80%
+- **Umbral configurado en `pytest.ini`**: 75 % (`fail_under = 75`, branch coverage activado)
+- **Cobertura actual**: ~80 %
 - **Ideal**: 90%+
 
 Archivos críticos (parsers, API routes) deben tener 90%+ coverage.
@@ -413,39 +436,12 @@ No perseguir 100% de coverage a ciegas:
 
 ### GitHub Actions
 
-Crear `.github/workflows/tests.yml`:
+El workflow ya está configurado en `.github/workflows/tests.yml`. Ejecuta dos jobs en paralelo sobre `ubuntu-latest` con Python 3.11:
 
-```yaml
-name: Tests
+- **Pytest + Coverage**: corre toda la suite con branch coverage y sube el informe a Codecov.
+- **Flake8 Lint**: valida estilo con `--max-line-length=120`.
 
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: windows-latest
-
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.9'
-
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
-
-    - name: Run tests with coverage
-      run: |
-        pytest --cov=modules --cov=utils --cov=main --cov-report=xml
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
-      with:
-        file: ./coverage.xml
-```
+La base de datos de test es SQLite en memoria (`DATABASE_URL=sqlite:///ci_test.db`), por lo que no requiere PostgreSQL en CI.
 
 ### Pre-commit Hooks
 
@@ -561,4 +557,4 @@ Para preguntas o problemas con los tests, abrir un issue en el repositorio del p
 
 ---
 
-**Última actualización**: 2024-01-08
+**Última actualización**: 2026-05-19

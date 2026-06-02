@@ -22,10 +22,10 @@ from utils.encryption import compute_search_hash
 # hash real si el usuario existe o contra _DUMMY_PASSWORD_HASH si no.
 _DUMMY_PASSWORD_HASH = generate_password_hash('___never_matches___')
 
-_EMAIL_RE    = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
-_COLOR_RE    = re.compile(r'^#[0-9A-Fa-f]{6}$')
-_ALLOWED_LANGS   = {'es', 'en'}
-_ALLOWED_THEMES  = {'light', 'dark'}
+_EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
+_COLOR_RE = re.compile(r'^#[0-9A-Fa-f]{6}$')
+_ALLOWED_LANGS = {'es', 'en'}
+_ALLOWED_THEMES = {'light', 'dark'}
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -62,8 +62,8 @@ def login():
             error = f'Cuenta bloqueada por demasiados intentos fallidos. Inténtalo de nuevo en {mins} minuto{"s" if mins != 1 else ""}.'
         elif user.is_active and password_ok:
             user.failed_attempts = 0
-            user.locked_until    = None
-            user.last_login      = datetime.utcnow()
+            user.locked_until = None
+            user.last_login = datetime.utcnow()
             db.session.commit()
             login_user(user, remember=False)
             session.permanent = True
@@ -97,7 +97,7 @@ def logout():
 @require_role('superadmin', 'admin')
 def usuarios_page():
     users = User.query.order_by(User.created_at).all()
-    return render_template('auth/usuarios.html', users=users)
+    return render_template('auth/usuarios.html', users=users, now_utc=datetime.utcnow())
 
 
 # ── API CRUD usuarios ─────────────────────────────────────────────────────────
@@ -116,10 +116,10 @@ def list_users():
 @require_role('superadmin')
 def create_user():
     data = request.get_json(silent=True) or {}
-    username  = (data.get('username') or '').strip()
-    password  = (data.get('password') or '').strip()
-    role      = data.get('role', 'solo_lectura')
-    email     = (data.get('email') or '').strip().lower() or None
+    username = (data.get('username') or '').strip()
+    password = (data.get('password') or '').strip()
+    role = data.get('role', 'solo_lectura')
+    email = (data.get('email') or '').strip().lower() or None
     full_name = (data.get('full_name') or '').strip() or None
 
     if not username or not password:
@@ -238,7 +238,7 @@ def update_user(user_id):
         user.is_active = bool(data['is_active'])
 
     db.session.commit()
-    log_action('user_updated', f'user_id:{user_id}', f'fields={list(data.keys())}')
+    log_action('user_updated', f'user_id:{user_id}', f'username={user.username} fields={list(data.keys())}')
     return jsonify(user.to_dict())
 
 
@@ -255,6 +255,24 @@ def delete_user(user_id):
     db.session.commit()
     log_action('user_deleted', f'user_id:{user_id}', f'username={username_deleted}')
     return jsonify({'message': f'Usuario {user_id} eliminado'})
+
+
+@auth_bp.route('/api/usuarios/<int:user_id>/unlock', methods=['POST'])
+@require_role('superadmin', 'admin')
+def unlock_user(user_id):
+    """Quita el bloqueo de cuenta y resetea el contador de intentos fallidos.
+    Admin no puede desbloquear cuentas superadmin (mismo criterio que update)."""
+    user = db.session.get(User, user_id)
+    if user is None:
+        return jsonify({'error': 'Usuario no encontrado'}), 404
+    if current_user.role == 'admin' and user.role == 'superadmin' and user.id != current_user.id:
+        return jsonify({'error': 'No tiene permisos para desbloquear superadmins'}), 403
+
+    user.locked_until = None
+    user.failed_attempts = 0
+    db.session.commit()
+    log_action('user_unlocked', f'user_id:{user_id}', f'username={user.username}')
+    return jsonify(user.to_dict())
 
 
 # ── API Perfil (usuario autenticado) ──────────────────────────────────────────
@@ -275,12 +293,12 @@ def _load_filtered_audit_entries(args):
     """
     from utils.audit import AUDIT_LOG_PATH
 
-    user_q    = (args.get('user', '') or '').strip().lower()
-    action_q  = (args.get('action', '') or '').strip().lower()
+    user_q = (args.get('user', '') or '').strip().lower()
+    action_q = (args.get('action', '') or '').strip().lower()
     machine_q = (args.get('machine', '') or '').strip().lower()
-    text_q    = (args.get('q', '') or '').strip().lower()
+    text_q = (args.get('q', '') or '').strip().lower()
     date_from = (args.get('from', '') or '').strip()
-    date_to   = (args.get('to', '') or '').strip()
+    date_to = (args.get('to', '') or '').strip()
 
     base = AUDIT_LOG_PATH
     paths = [base] if os.path.exists(base) else []
@@ -291,7 +309,7 @@ def _load_filtered_audit_entries(args):
 
     line_re = re.compile(
         r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:,\d+)?) '
-        r'user=(?P<user>\S+) ip=(?P<ip>\S+) '
+        r'user=(?P<user>\S+?)(?:\s+uid=(?P<uid>\d+))? ip=(?P<ip>\S+) '
         r'(?:machine=(?P<machine>\S+) )?'
         r'action=(?P<action>\S+) resource=(?P<resource>\S+)'
         r'(?: detail="(?P<detail>[^"]*)")?'
@@ -311,6 +329,7 @@ def _load_filtered_audit_entries(args):
                     e = {
                         'timestamp': m.group('ts'),
                         'user':      m.group('user'),
+                        'uid':       m.group('uid'),
                         'ip':        m.group('ip'),
                         'machine':   machine_disp,
                         'action':    m.group('action'),
@@ -324,6 +343,21 @@ def _load_filtered_audit_entries(args):
                     entries.append(e)
         except (IOError, OSError):
             continue
+
+    # Resolver username actual desde la BD usando el uid guardado en el log.
+    # Si el usuario cambió su nombre, se muestra el nombre actual.
+    try:
+        from database.models import User as _User
+        uid_set = {int(e['uid']) for e in entries if e.get('uid')}
+        if uid_set:
+            uid_map = {u.id: u.username for u in _User.query.filter(_User.id.in_(uid_set)).all()}
+            for e in entries:
+                if e.get('uid') and int(e['uid']) in uid_map:
+                    e['user'] = uid_map[int(e['uid'])]
+        # Reconstruir users_set con los nombres actuales tras la resolución
+        users_set = {e['user'] for e in entries}
+    except Exception:
+        pass
 
     def _keep(e):
         if user_q and user_q not in e['user'].lower():
@@ -357,7 +391,7 @@ def list_audit_logs():
     log = logging.getLogger(__name__)
     try:
         try:
-            page     = max(int(request.args.get('page', 1)), 1)
+            page = max(int(request.args.get('page', 1)), 1)
             per_page = min(max(int(request.args.get('per_page', 50)), 10), 500)
         except (TypeError, ValueError):
             page, per_page = 1, 50
@@ -366,7 +400,7 @@ def list_audit_logs():
 
         total = len(filtered)
         start = (page - 1) * per_page
-        end   = start + per_page
+        end = start + per_page
 
         # No exponer la ruta del log al frontend (defensa en profundidad).
         return jsonify({
@@ -621,9 +655,9 @@ def update_notification_prefs():
 @login_required
 def change_password():
     data = request.get_json(silent=True) or {}
-    current_pw  = data.get('current_password', '')
-    new_pw      = data.get('new_password', '')
-    confirm_pw  = data.get('confirm_password', '')
+    current_pw = data.get('current_password', '')
+    new_pw = data.get('new_password', '')
+    confirm_pw = data.get('confirm_password', '')
 
     if not current_user.check_password(current_pw):
         return jsonify({'error': 'La contraseña actual es incorrecta'}), 400

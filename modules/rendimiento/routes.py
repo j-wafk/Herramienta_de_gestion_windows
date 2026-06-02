@@ -1,7 +1,6 @@
 # modules/rendimiento/routes.py
 from flask import Blueprint, jsonify, request, current_app
 import re
-import time
 from datetime import datetime, timedelta
 from utils.powershell_client import resolve_and_send, send_command_to_powershell
 from .parsers import parse_cpu_output, parse_memory_output, parse_process_output
@@ -40,14 +39,14 @@ def get_system_data():
             machine = Machine.query.get(int(machine_id))
             if not machine:
                 return jsonify({"error": f"Máquina {machine_id} no encontrada"}), 404
-            cpu_raw  = send_command_to_machine('cpu',    machine.ip, machine.port)
-            mem_raw  = send_command_to_machine('memory', machine.ip, machine.port)
-            disk_raw = send_command_to_machine('disk',   machine.ip, machine.port)
+            cpu_raw = send_command_to_machine('cpu', machine.ip, machine.port)
+            mem_raw = send_command_to_machine('memory', machine.ip, machine.port)
+            disk_raw = send_command_to_machine('disk', machine.ip, machine.port)
             reachable = "No se pudo conectar" not in cpu_raw
             return jsonify({
-                "cpu":     {"value": _cpu(cpu_raw),  "history": [_cpu(cpu_raw)]  * 15},
-                "memory":  {"value": _mem(mem_raw),  "history": [_mem(mem_raw)]  * 15},
-                "disk":    _disk(disk_raw),
+                "cpu": {"value": _cpu(cpu_raw), "history": [_cpu(cpu_raw)] * 15},
+                "memory": {"value": _mem(mem_raw), "history": [_mem(mem_raw)] * 15},
+                "disk": _disk(disk_raw),
                 "processes": [],
                 "machine": {"id": machine.id, "name": machine.name,
                             "ip": machine.ip, "reachable": reachable},
@@ -131,8 +130,8 @@ def _history_from_db(machine_id, field, minutes=15):
 @rendimiento_bp.route('/cpu', methods=['GET'])
 def get_cpu_data():
     machine_id = _mid()
-    active_id  = _active_machine_id()
-    history    = _history_from_db(active_id, 'cpu', minutes=15)
+    active_id = _active_machine_id()
+    history = _history_from_db(active_id, 'cpu', minutes=15)
     if machine_id:
         raw = _send('cpu')
         val = parse_cpu_output(raw)
@@ -153,8 +152,8 @@ def get_cpu_data():
 @rendimiento_bp.route('/memory', methods=['GET'])
 def get_memory_data():
     machine_id = _mid()
-    active_id  = _active_machine_id()
-    history    = _history_from_db(active_id, 'memory', minutes=15)
+    active_id = _active_machine_id()
+    history = _history_from_db(active_id, 'memory', minutes=15)
     if machine_id:
         raw = _send('memory')
         val = parse_memory_output(raw)
@@ -203,7 +202,7 @@ def get_processes_data():
             return jsonify(cached)
 
     # Cache stale or empty: fetch fresh and store
-    raw    = send_command_to_powershell('process')
+    raw = send_command_to_powershell('process')
     parsed = parse_process_output(raw)
     if parsed:
         cache_manager.update_cache("processes", parsed)
@@ -332,24 +331,24 @@ def get_disk_list():
             continue
         try:
             disks.append({
-                'letter':   parts[0].strip(),
-                'label':    parts[1].strip(),
+                'letter': parts[0].strip(),
+                'label': parts[1].strip(),
                 'total_gb': float(parts[2].replace(',', '.')),
-                'used_gb':  float(parts[3].replace(',', '.')),
-                'free_gb':  float(parts[4].replace(',', '.')),
+                'used_gb': float(parts[3].replace(',', '.')),
+                'free_gb': float(parts[4].replace(',', '.')),
                 'used_pct': float(parts[5].replace(',', '.')),
             })
         except (ValueError, IndexError):
             continue
     total = sum(d['total_gb'] for d in disks)
-    used  = sum(d['used_gb']  for d in disks)
-    free  = sum(d['free_gb']  for d in disks)
+    used = sum(d['used_gb'] for d in disks)
+    free = sum(d['free_gb'] for d in disks)
     return jsonify({
         'disks': disks,
         'totals': {
             'total_gb': round(total, 2),
-            'used_gb':  round(used, 2),
-            'free_gb':  round(free, 2),
+            'used_gb': round(used, 2),
+            'free_gb': round(free, 2),
             'used_pct': round((used / total) * 100, 2) if total > 0 else 0,
         }
     })

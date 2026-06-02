@@ -6,7 +6,7 @@ from utils.validators import validate_network_target, validate_adapter_name
 red_bp = Blueprint('red', __name__)
 
 _TOOLS_OPERADOR = {'ping', 'traceroute', 'ipconfig', 'netstat'}
-_TOOLS_ADMIN    = {'release_renew', 'flush_dns'}
+_TOOLS_ADMIN = {'release_renew', 'flush_dns'}
 
 
 def _mid():
@@ -108,7 +108,7 @@ def get_network_alerts():
 @red_bp.route('/tool', methods=['POST'])
 def run_network_tool():
     data = request.get_json(silent=True) or {}
-    tool   = data.get('tool', '').strip()
+    tool = data.get('tool', '').strip()
     target = data.get('target', '').strip()
 
     all_tools = _TOOLS_OPERADOR | _TOOLS_ADMIN

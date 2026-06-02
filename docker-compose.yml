@@ -6,6 +6,9 @@ services:
     ports:
       - "80:80"     # redirige a HTTPS
       - "443:443"   # HTTPS terminado aquí
+    volumes:
+      - ./certs/server.crt:/etc/nginx/certs/server.crt:ro
+      - ./certs/server.key:/etc/nginx/certs/server.key:ro
     depends_on:
       flask:
         condition: service_healthy   # esperar a que Flask responda /health
@@ -23,7 +26,7 @@ services:
       # FIELD_ENCRYPTION_KEY debe definirse en .env (cifra email, nombres y
       # cuerpos de correo almacenados en la BD).
       # Genera una con: python -c "import secrets; print(secrets.token_hex(32))"
-      - DATABASE_URL=postgresql://gestion:gestion@postgres:5432/gestion_db?sslmode=require
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=require
       - POWERSHELL_SERVER=host.docker.internal
       - POWERSHELL_PORT=12345
       - FLASK_DEBUG=False
@@ -84,15 +87,15 @@ services:
       -c ssl_cert_file=/certs/server.crt
       -c ssl_key_file=/certs/server.key
     environment:
-      POSTGRES_DB:       gestion_db
-      POSTGRES_USER:     gestion
-      POSTGRES_PASSWORD: gestion
+      POSTGRES_DB:       ${DB_NAME}
+      POSTGRES_USER:     ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     expose:
       - "5432"          # visible sólo internamente
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "gestion", "-d", "gestion_db"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10

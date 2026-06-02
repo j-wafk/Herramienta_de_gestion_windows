@@ -2053,7 +2053,13 @@ try {
                 '^log (\d+)$' { return Get-SystemLogs -Count ([int]$matches[1]) }
 
                 '^restart$' {
-                    return "ADVERTENCIA: Se ha solicitado reiniciar el sistema.`nEn produccion: Restart-Computer -Force"
+                    try {
+                        # 5 s de delay para que la respuesta llegue al cliente antes del apagado
+                        shutdown.exe /r /t 5 /c "Reinicio solicitado desde Herramienta-Gestion" | Out-Null
+                        return "Reinicio programado. El sistema se reiniciará en 5 segundos."
+                    } catch {
+                        return "Error al programar el reinicio: $_"
+                    }
                 }
 
                 '^matar (\d+)$' {

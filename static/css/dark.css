@@ -487,11 +487,12 @@ html[data-theme="dark"] .history-row td  { border-color: #30363d; }
 html[data-theme="dark"] .history-row:hover { background: #21262d; }
 
 html[data-theme="dark"] .status-badge.completed,
-html[data-theme="dark"] .status-ok  { background: #0d2911; color: #3fb950; border-color: #1b4a2b; }
+html[data-theme="dark"] .status-ok        { background: #0d2911; color: #3fb950; border-color: #1b4a2b; }
 html[data-theme="dark"] .status-badge.error,
-html[data-theme="dark"] .status-err { background: #2d0a0a; color: #f85149; border-color: #5c1e1e; }
+html[data-theme="dark"] .status-err       { background: #2d0a0a; color: #f85149; border-color: #5c1e1e; }
 html[data-theme="dark"] .status-badge.running,
-html[data-theme="dark"] .status-run { background: #1a2332; color: #58a6ff; border-color: #1f4a6e; }
+html[data-theme="dark"] .status-run       { background: #2a1c00; color: #e3b341; border-color: #5a3a00; }
+html[data-theme="dark"] .status-badge.cancelled { background: #1c1f24; color: #8b949e; border-color: #30363d; }
 
 /* ────────────────────────────────────────────────────────────── */
 /* MONITORIZACIÓN                                                  */
@@ -948,6 +949,10 @@ html[data-theme="dark"] .mon-search {
 }
 html[data-theme="dark"] .mon-info { color: #6e7681; }
 html[data-theme="dark"] .mon-empty { color: #6e7681; }
+html[data-theme="dark"] .mon-ip-code { background: none; color: #8b949e; }
+html[data-theme="dark"] .mon-desc { color: #8b949e; }
+html[data-theme="dark"] .mon-empty-cell { color: #484f58; }
+html[data-theme="dark"] .mon-table code { background: transparent; }
 
 /* mon-status badges */
 html[data-theme="dark"] .mon-status.online .badge,

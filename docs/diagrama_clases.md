@@ -120,7 +120,6 @@ classDiagram
         +String schedule_time
         +bool compress
         +bool verify_after
-        +bool encrypt
         +bool notify
         +bool enabled
         +String scheduled_task_name

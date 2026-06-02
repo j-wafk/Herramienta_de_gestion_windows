@@ -157,15 +157,15 @@ document.addEventListener('DOMContentLoaded', function () {
             const [cls, label] = machineStatus(m);
             const name = escapeHtml(m.name || '—');
             const ip   = escapeHtml(m.ip   || '—');
-            const desc = escapeHtml(m.description || '—');
+            const desc = escapeHtml(m.description || '');
             const editBtn = canWrite
                 ? `<button class="mon-btn secondary" data-mach-edit="${m.id}" style="padding:4px 10px;font-size:12px">Editar</button>`
                 : '';
             return `<tr>` +
-                `<td style="color:#1f2328"><strong>${name}</strong></td>` +
-                `<td style="color:#1f2328;font-family:Consolas,monospace"><code>${ip}</code></td>` +
-                `<td style="color:#1f2328"><span class="mon-status ${cls}"><span class="dot"></span>${label}</span></td>` +
-                `<td style="color:#1f2328">${desc}</td>` +
+                `<td><strong>${name}</strong></td>` +
+                `<td><code class="mon-ip-code">${ip}</code></td>` +
+                `<td><span class="mon-status ${cls}"><span class="dot"></span><span class="badge">${label}</span></span></td>` +
+                `<td class="mon-desc">${desc ? desc : '<span class="mon-empty-cell">—</span>'}</td>` +
                 (canWrite ? `<td style="text-align:right">${editBtn}</td>` : '') +
                 `</tr>`;
         }).join('');

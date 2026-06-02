@@ -1,4 +1,4 @@
-# tests/conftest.py
+﻿# tests/conftest.py
 """
 Configuración global de fixtures para pytest
 """
@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 # DATABASE_URL debe fijarse aquí para que config.py la vea antes de ser importado
 # por cualquier módulo de test (ej. test_api_endpoints.py importa 'main' a nivel de módulo).
 os.environ.setdefault('SECRET_KEY', 'test_secret')
-os.environ.setdefault('ADMIN_PASSWORD', 'admin12345678')
+os.environ.setdefault('ADMIN_PASSWORD', 'Admin12345678!')
 os.environ.setdefault('FIELD_ENCRYPTION_KEY', 'test_field_encryption_key_32bytes!!')
 os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 
@@ -64,7 +64,7 @@ def auth_client(app):
     with app.test_client() as client:
         response = client.post('/auth/login', data={
             'username': 'admin',
-            'password': 'admin12345678',
+            'password': 'Admin12345678!',
         }, follow_redirects=False)
         assert response.status_code == 302, (
             f"Login falló: status={response.status_code}, body={response.data[:200]!r}"

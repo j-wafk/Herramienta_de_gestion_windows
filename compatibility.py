@@ -91,6 +91,17 @@ def procesos_legacy():
     output = _send(command, machine_id)
     return jsonify({"output": output})
 
+@compat_bp.route('/api/restart', methods=['POST'])
+@require_role('superadmin', 'admin')
+def restart_machine():
+    data = request.json or {}
+    if data.get('confirm') != 'CONFIRMAR':
+        return jsonify({"error": "Confirmación inválida. Debes enviar confirm='CONFIRMAR'."}), 400
+    machine_id = data.get('machine_id')
+    output = _send('restart', machine_id)
+    return jsonify({"output": output})
+
+
 @compat_bp.route('/api/command', methods=['POST'])
 @require_role('superadmin', 'admin')
 def execute_command_legacy():

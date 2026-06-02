@@ -32,8 +32,8 @@ class Machine(db.Model):
             'port': self.port,
             'status': self.status,
             'description': self.description,
-            'last_seen': self.last_seen.isoformat() if self.last_seen else None,
-            'created_at': self.created_at.isoformat(),
+            'last_seen': self.last_seen.isoformat() + 'Z' if self.last_seen else None,
+            'created_at': self.created_at.isoformat() + 'Z',
         }
 
 
@@ -51,7 +51,7 @@ class SystemMetric(db.Model):
 
     def to_dict(self):
         return {
-            'timestamp': self.timestamp.isoformat(),
+            'timestamp': self.timestamp.isoformat() + 'Z',
             'cpu': self.cpu,
             'memory': self.memory,
             'disk_used': self.disk_used,
@@ -76,7 +76,7 @@ class HardwareSnapshot(db.Model):
 
     def to_dict(self):
         return {
-            'timestamp':   self.timestamp.isoformat() if self.timestamp else None,
+            'timestamp':   self.timestamp.isoformat() + 'Z' if self.timestamp else None,
             'system':      json.loads(self.system_json      or '{}'),
             'cpu':         json.loads(self.cpu_json         or '{}'),
             'memory':      json.loads(self.memory_json      or '{}'),
@@ -107,7 +107,7 @@ class Service(db.Model):
             'display_name': self.display_name,
             'status': self.status,
             'start_type': self.start_type,
-            'last_updated': self.last_updated.isoformat(),
+            'last_updated': self.last_updated.isoformat() + 'Z',
         }
 
 
@@ -148,15 +148,17 @@ class User(UserMixin, db.Model):
             'username':            self.username,
             'role':                self.role,
             'is_active':           self.is_active,
-            'created_at':          self.created_at.isoformat() if self.created_at else None,
-            'last_login':          self.last_login.isoformat() if self.last_login else None,
+            'created_at':          self.created_at.isoformat() + 'Z' if self.created_at else None,
+            'last_login':          self.last_login.isoformat() + 'Z' if self.last_login else None,
             'email':               self.email,
             'full_name':           self.full_name,
             'language':            self.language,
             'theme':               self.theme,
             'avatar_color':        self.avatar_color,
             'email_notifications': self.email_notifications,
-            'updated_at':          self.updated_at.isoformat() if self.updated_at else None,
+            'updated_at':          self.updated_at.isoformat() + 'Z' if self.updated_at else None,
+            'locked_until':        self.locked_until.isoformat() + 'Z' if self.locked_until else None,
+            'is_locked':           bool(self.locked_until and self.locked_until > datetime.utcnow()),
         }
 
 
@@ -183,7 +185,7 @@ class BackupDestination(db.Model):
             'path':       self.path,
             'status':     self.status,
             'supported':  self.type == 'local',
-            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'created_at': self.created_at.isoformat() + 'Z' if self.created_at else None,
         }
 
 
@@ -201,8 +203,8 @@ class BackupJob(db.Model):
     schedule_time   = db.Column(db.String(5),  nullable=False, default='02:00')   # HH:MM
     compress        = db.Column(db.Boolean, nullable=False, default=True)
     verify_after    = db.Column(db.Boolean, nullable=False, default=True)
-    encrypt         = db.Column(db.Boolean, nullable=False, default=False)  # no-op (UI only)
-    notify          = db.Column(db.Boolean, nullable=False, default=False)  # no-op (UI only)
+    encrypt         = db.Column(db.Boolean, nullable=False, default=False)  # reservado para versiones futuras
+    notify          = db.Column(db.Boolean, nullable=False, default=False)
     enabled         = db.Column(db.Boolean, nullable=False, default=True)
     last_run_at     = db.Column(db.DateTime, nullable=True)
     next_run_at     = db.Column(db.DateTime, nullable=True)
@@ -232,10 +234,10 @@ class BackupJob(db.Model):
             'encrypt':         self.encrypt,
             'notify':          self.notify,
             'enabled':         self.enabled,
-            'last_run_at':     self.last_run_at.isoformat() if self.last_run_at else None,
-            'next_run_at':     self.next_run_at.isoformat() if self.next_run_at else None,
+            'last_run_at':     self.last_run_at.isoformat() + 'Z' if self.last_run_at else None,
+            'next_run_at':     self.next_run_at.isoformat() + 'Z' if self.next_run_at else None,
             'scheduled_task_name': self.scheduled_task_name,
-            'created_at':      self.created_at.isoformat() if self.created_at else None,
+            'created_at':      self.created_at.isoformat() + 'Z' if self.created_at else None,
         }
 
 
@@ -277,8 +279,8 @@ class BackupRun(db.Model):
             'job_deleted':     self.job_id is None and self.job_name_snapshot is not None,
             'backup_type':     backup_type,
             'machine_id':      self.machine_id,
-            'started_at':      self.started_at.isoformat() if self.started_at else None,
-            'finished_at':     self.finished_at.isoformat() if self.finished_at else None,
+            'started_at':      self.started_at.isoformat() + 'Z' if self.started_at else None,
+            'finished_at':     self.finished_at.isoformat() + 'Z' if self.finished_at else None,
             'status':          self.status,
             'progress_pct':    round(self.progress_pct or 0.0, 1),
             'files_done':      self.files_done,
@@ -302,7 +304,7 @@ class MonitoredService(db.Model):
     icon_key      = db.Column(db.String(20),  nullable=True)   # winrm/iis/sql/rdp/dns/api/backup/...
     ip            = db.Column(db.String(45),  nullable=False)
     port          = db.Column(db.Integer,     nullable=False)
-    protocol      = db.Column(db.String(8),   nullable=False, default='TCP')  # TCP|UDP
+    protocol      = db.Column(db.String(8),   nullable=False, default='TCP')  # TCP|UDP|HTTPS
     enabled       = db.Column(db.Boolean,     nullable=False, default=True)
     last_status   = db.Column(db.String(16),  nullable=False, default='unknown')  # up|down|warning|unknown
     last_check    = db.Column(db.DateTime,    nullable=True)
@@ -326,7 +328,7 @@ class MonitoredService(db.Model):
             'protocol':        self.protocol,
             'enabled':         self.enabled,
             'last_status':     self.last_status,
-            'last_check':      self.last_check.isoformat() if self.last_check else None,
+            'last_check':      self.last_check.isoformat() + 'Z' if self.last_check else None,
             'last_latency_ms': self.last_latency_ms,
             'last_message':    self.last_message,
         }
@@ -352,7 +354,7 @@ class ServiceCheck(db.Model):
             'service_name': s.name if s else '—',
             'icon_key':     (s.icon_key or '') if s else '',
             'machine_name': m.name if m else (s.ip if s else '—'),
-            'timestamp':    self.timestamp.isoformat() if self.timestamp else None,
+            'timestamp':    self.timestamp.isoformat() + 'Z' if self.timestamp else None,
             'status':       self.status,
             'message':      self.message or '',
             'latency_ms':   self.latency_ms,
@@ -392,9 +394,9 @@ class EmailQueue(db.Model):
             'status':       self.status,
             'tries':        self.tries,
             'last_error':   self.last_error,
-            'scheduled_at': self.scheduled_at.isoformat() if self.scheduled_at else None,
-            'sent_at':      self.sent_at.isoformat() if self.sent_at else None,
-            'created_at':   self.created_at.isoformat() if self.created_at else None,
+            'scheduled_at': self.scheduled_at.isoformat() + 'Z' if self.scheduled_at else None,
+            'sent_at':      self.sent_at.isoformat() + 'Z' if self.sent_at else None,
+            'created_at':   self.created_at.isoformat() + 'Z' if self.created_at else None,
             'related_kind': self.related_kind,
             'related_id':   self.related_id,
         }
@@ -427,5 +429,5 @@ class NotificationPreference(db.Model):
             'backup_failed':    self.backup_failed,
             'backup_completed': self.backup_completed,
             'daily_summary':    self.daily_summary,
-            'updated_at':       self.updated_at.isoformat() if self.updated_at else None,
+            'updated_at':       self.updated_at.isoformat() + 'Z' if self.updated_at else None,
         }

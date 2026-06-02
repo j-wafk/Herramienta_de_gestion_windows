@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+
 EXPOSE 5000
 
 # IMPORTANTE: workers=1 es OBLIGATORIO.

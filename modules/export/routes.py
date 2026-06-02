@@ -12,6 +12,7 @@ export_bp = Blueprint('export', __name__)
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+
 def _mid():
     return request.args.get('machine_id') or None
 
@@ -94,17 +95,17 @@ def _make_xlsx(sheets):
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from openpyxl.utils import get_column_letter
 
-    BLUE  = '0A67DC'
+    BLUE = '0A67DC'
     LGRAY = 'F4F7FB'
-    GRAY  = '374151'
+    GRAY = '374151'
 
-    hdr_font  = Font(bold=True, color='FFFFFF', size=11)
-    hdr_fill  = PatternFill('solid', fgColor=BLUE)
+    hdr_font = Font(bold=True, color='FFFFFF', size=11)
+    hdr_fill = PatternFill('solid', fgColor=BLUE)
     hdr_align = Alignment(horizontal='center', vertical='center')
-    row_font  = Font(color=GRAY, size=10)
-    alt_fill  = PatternFill('solid', fgColor=LGRAY)
-    thin      = Side(style='thin', color='E5E7EB')
-    brd       = Border(left=thin, right=thin, top=thin, bottom=thin)
+    row_font = Font(color=GRAY, size=10)
+    alt_fill = PatternFill('solid', fgColor=LGRAY)
+    thin = Side(style='thin', color='E5E7EB')
+    brd = Border(left=thin, right=thin, top=thin, bottom=thin)
 
     wb = openpyxl.Workbook()
     wb.remove(wb.active)
@@ -153,7 +154,7 @@ def _make_pdf(title, machine_name, sections):
         Paragraph, Spacer, HRFlowable,
     )
 
-    BLUE  = colors.HexColor('#0A67DC')
+    BLUE = colors.HexColor('#0A67DC')
     LGRAY = colors.HexColor('#F4F7FB')
     DGRAY = colors.HexColor('#374151')
 
@@ -214,7 +215,7 @@ def _make_pdf(title, machine_name, sections):
             ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
             ('TOPPADDING',    (0, 0), (-1, 0), 5),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 5),
-            ('ROWBACKGROUNDS',(0, 1), (-1, -1), [colors.white, LGRAY]),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, LGRAY]),
             ('GRID',          (0, 0), (-1, -1), 0.4, colors.HexColor('#E5E7EB')),
             ('LEFTPADDING',   (0, 0), (-1, -1), 5),
             ('RIGHTPADDING',  (0, 0), (-1, -1), 5),
@@ -266,11 +267,11 @@ def export_hardware():
         if snap:
             return {
                 'name':  machine.name,
-                'sys':   json.loads(snap.system_json   or '{}'),
-                'cpu':   json.loads(snap.cpu_json      or '{}'),
-                'mem':   json.loads(snap.memory_json   or '{}'),
-                'disks': json.loads(snap.disks_json    or '[]'),
-                'gpu':   json.loads(snap.gpu_json      or '[]'),
+                'sys':   json.loads(snap.system_json or '{}'),
+                'cpu':   json.loads(snap.cpu_json or '{}'),
+                'mem':   json.loads(snap.memory_json or '{}'),
+                'disks': json.loads(snap.disks_json or '[]'),
+                'gpu':   json.loads(snap.gpu_json or '[]'),
                 'mb':    json.loads(snap.motherboard_json or '{}'),
             }
         mid = str(machine.id)
@@ -285,10 +286,11 @@ def export_hardware():
         }
 
     all_data = [_load(m) for m in machines]
-    multi    = len(all_data) > 1
+    multi = len(all_data) > 1
 
-    kv_rows = lambda d: [[k, v] for k, v in d.items()]
-    pipe_rows = lambda lst: (
+    def kv_rows(d): return [[k, v] for k, v in d.items()]
+
+    def pipe_rows(lst): return (
         (list(lst[0].keys()), [[r.get(c, '') for c in lst[0].keys()] for r in lst])
         if lst and isinstance(lst[0], dict) else (['Campo'], [['Sin datos']])
     )
@@ -337,18 +339,18 @@ def export_hardware():
 @export_bp.route('/rendimiento')
 @login_required
 def export_rendimiento():
-    fmt  = request.args.get('format', 'xlsx').lower()
+    fmt = request.args.get('format', 'xlsx').lower()
     days = min(int(request.args.get('days', 7)), 30)
     if fmt not in ('xlsx', 'pdf'):
         return jsonify({'error': 'Formato no válido. Use xlsx o pdf'}), 400
 
     machine = _get_machine(_mid())
-    mname   = machine.name if machine else 'Local'
-    ts      = datetime.now().strftime('%Y%m%d_%H%M')
-    fname   = f'rendimiento_{mname}_{ts}'
+    mname = machine.name if machine else 'Local'
+    ts = datetime.now().strftime('%Y%m%d_%H%M')
+    fname = f'rendimiento_{mname}_{ts}'
 
     from database.models import SystemMetric
-    since   = datetime.utcnow() - timedelta(days=days)
+    since = datetime.utcnow() - timedelta(days=days)
     metrics = []
     if machine:
         metrics = (
@@ -360,7 +362,7 @@ def export_rendimiento():
         )
 
     headers = ['Fecha/Hora', 'CPU (%)', 'Memoria (%)', 'Disco usado (GB)', 'Disco libre (GB)']
-    rows    = [
+    rows = [
         [
             m.timestamp.strftime('%d/%m/%Y %H:%M:%S'),
             round(m.cpu or 0, 2),
@@ -393,23 +395,23 @@ def export_particiones():
         return jsonify({'error': 'Formato no válido. Use xlsx o pdf'}), 400
 
     machine = _get_machine(_mid())
-    mname   = machine.name if machine else 'Local'
-    ts      = datetime.now().strftime('%Y%m%d_%H%M')
-    fname   = f'particiones_{mname}_{ts}'
+    mname = machine.name if machine else 'Local'
+    ts = datetime.now().strftime('%Y%m%d_%H%M')
+    fname = f'particiones_{mname}_{ts}'
 
     disks = _parse_blocks(_send('list_disks'))
     parts = _parse_blocks(_send('list_partitions'))
 
     dh = ['Disco', 'Modelo', 'Tamaño', 'Estado', 'Interfaz', 'Nº Serie']
-    dr = [[d.get('Disco',''), d.get('Modelo',''), d.get('Tamaño',''),
-           d.get('Estado',''), d.get('Interfaz',''), d.get('Número de Serie','')] for d in disks] \
-         or [['Sin datos'] * len(dh)]
+    dr = [[d.get('Disco', ''), d.get('Modelo', ''), d.get('Tamaño', ''),
+           d.get('Estado', ''), d.get('Interfaz', ''), d.get('Número de Serie', '')] for d in disks] \
+        or [['Sin datos'] * len(dh)]
 
     ph = ['Partición', 'Letra', 'Etiqueta', 'Sistema arch.', 'Tamaño', 'Usado', 'Tipo']
-    pr = [[p.get('Partición',''), p.get('Letra',''), p.get('Etiqueta',''),
-           p.get('Sistema de archivos',''), p.get('Tamaño',''),
-           p.get('Usado',''), p.get('Tipo','')] for p in parts] \
-         or [['Sin datos'] * len(ph)]
+    pr = [[p.get('Partición', ''), p.get('Letra', ''), p.get('Etiqueta', ''),
+           p.get('Sistema de archivos', ''), p.get('Tamaño', ''),
+           p.get('Usado', ''), p.get('Tipo', '')] for p in parts] \
+        or [['Sin datos'] * len(ph)]
 
     if fmt == 'xlsx':
         return _response(_make_xlsx([('Discos', dh, dr), ('Particiones', ph, pr)]), 'xlsx', fname)
@@ -430,22 +432,22 @@ def export_red():
         return jsonify({'error': 'Formato no válido. Use xlsx o pdf'}), 400
 
     machine = _get_machine(_mid())
-    mname   = machine.name if machine else 'Local'
-    ts      = datetime.now().strftime('%Y%m%d_%H%M')
-    fname   = f'red_{mname}_{ts}'
+    mname = machine.name if machine else 'Local'
+    ts = datetime.now().strftime('%Y%m%d_%H%M')
+    fname = f'red_{mname}_{ts}'
 
     adapters = _parse_pipe(_send('net_adapters'))
-    stats    = _parse_pipe(_send('net_stats'))
+    stats = _parse_pipe(_send('net_stats'))
 
     ah = ['Nombre', 'Tipo', 'Estado', 'IP', 'Velocidad']
-    ar = [[a.get('name',''), a.get('type',''), a.get('status',''),
-           a.get('ip',''), a.get('speed','')] for a in adapters] \
-         or [['Sin datos'] * len(ah)]
+    ar = [[a.get('name', ''), a.get('type', ''), a.get('status', ''),
+           a.get('ip', ''), a.get('speed', '')] for a in adapters] \
+        or [['Sin datos'] * len(ah)]
 
     sh = ['Adaptador', 'Recibido (MB)', 'Enviado (MB)', 'Pkt. RX', 'Pkt. TX']
-    sr = [[s.get('name',''), s.get('rx_mb',''), s.get('tx_mb',''),
-           s.get('rx_packets',''), s.get('tx_packets','')] for s in stats] \
-         or [['Sin datos'] * len(sh)]
+    sr = [[s.get('name', ''), s.get('rx_mb', ''), s.get('tx_mb', ''),
+           s.get('rx_packets', ''), s.get('tx_packets', '')] for s in stats] \
+        or [['Sin datos'] * len(sh)]
 
     if fmt == 'xlsx':
         return _response(_make_xlsx([('Adaptadores', ah, ar), ('Estadísticas', sh, sr)]), 'xlsx', fname)

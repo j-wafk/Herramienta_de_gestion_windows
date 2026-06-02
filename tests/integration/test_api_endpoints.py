@@ -1,4 +1,4 @@
-# tests/integration/test_api_endpoints.py
+﻿# tests/integration/test_api_endpoints.py
 """
 Tests de integración para los endpoints HTTP.
 
@@ -72,14 +72,14 @@ class TestLoginPage:
 
 @pytest.fixture
 def auth_client(client):
-    """Cliente con sesión iniciada como superadmin (admin / admin12345678).
+    """Cliente con sesión iniciada como superadmin (admin / Admin12345678!).
 
     Las credenciales se fijan en `tests/conftest.py` mediante variables de
     entorno y `_ensure_superadmin` las usa al crear la cuenta inicial.
     """
     response = client.post('/auth/login', data={
         'username': 'admin',
-        'password': 'admin12345678',
+        'password': 'Admin12345678!',
     }, follow_redirects=False)
     # 302 = redirect tras login OK; 200 = login renderizado con error.
     assert response.status_code == 302, (

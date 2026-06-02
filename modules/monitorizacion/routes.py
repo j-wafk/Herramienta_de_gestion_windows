@@ -3,7 +3,7 @@
 - Las máquinas son las MISMAS del modelo `Machine` que usa el selector de
   cabecera (/api/machines), por lo que un alta/edición/baja desde aquí o
   desde el selector se ve reflejada en ambos sitios.
-- Los servicios monitorizados son `MonitoredService` (sondeo TCP/UDP).
+- Los servicios monitorizados son `MonitoredService` (sondeo TCP/UDP/HTTPS).
 - La actividad reciente proviene de `ServiceCheck`.
 """
 import re
@@ -19,9 +19,10 @@ from utils.audit import log_action
 
 monitorizacion_bp = Blueprint('monitorizacion', __name__)
 
-_IP_RE   = re.compile(r'^\d{1,3}(\.\d{1,3}){3}$')
-_HOST_RE = re.compile(r'^[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$')
-_VALID_PROTOS = ('TCP', 'UDP')
+_IP_RE = re.compile(r'^\d{1,3}(\.\d{1,3}){3}$')
+_HOST_RE = re.compile(
+    r'^[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$')
+_VALID_PROTOS = ('TCP', 'UDP', 'HTTPS')
 
 
 def _valid_host(value):
@@ -37,24 +38,32 @@ def _valid_host(value):
 
 def _icon_key_from_name(name: str) -> str:
     n = (name or '').lower()
-    if 'winrm' in n: return 'winrm'
-    if 'iis' in n or 'web' in n: return 'iis'
-    if 'sql' in n: return 'sql'
-    if 'rdp' in n: return 'rdp'
-    if 'dns' in n: return 'dns'
-    if 'backup' in n: return 'backup'
-    if 'ssh'  in n: return 'ssh'
-    if 'http' in n or 'api' in n: return 'api'
+    if 'winrm' in n:
+        return 'winrm'
+    if 'iis' in n or 'web' in n:
+        return 'iis'
+    if 'sql' in n:
+        return 'sql'
+    if 'rdp' in n:
+        return 'rdp'
+    if 'dns' in n:
+        return 'dns'
+    if 'backup' in n:
+        return 'backup'
+    if 'ssh' in n:
+        return 'ssh'
+    if 'http' in n or 'api' in n:
+        return 'api'
     return ''
 
 
 def _record_check(svc: MonitoredService, result: dict, persist_event: bool = True):
     """Aplica el resultado de un sondeo. Crea evento si el estado cambió."""
     prev = svc.last_status
-    svc.last_status     = result['status']
+    svc.last_status = result['status']
     svc.last_latency_ms = result.get('latency_ms')
-    svc.last_message    = result.get('message')
-    svc.last_check      = datetime.utcnow()
+    svc.last_message = result.get('message')
+    svc.last_check = datetime.utcnow()
     if persist_event and prev != svc.last_status and svc.last_status != 'unknown':
         db.session.add(ServiceCheck(
             service_id=svc.id,
@@ -68,10 +77,10 @@ def _record_check(svc: MonitoredService, result: dict, persist_event: bool = Tru
 # ───────────────────────────── Resumen ──────────────────────────────
 @monitorizacion_bp.route('/summary', methods=['GET'])
 def get_summary():
-    machines_total  = Machine.query.count()
+    machines_total = Machine.query.count()
     machines_online = Machine.query.filter(Machine.status == 'online').count()
-    services_total  = MonitoredService.query.filter_by(enabled=True).count()
-    services_up     = MonitoredService.query.filter_by(enabled=True, last_status='up').count()
+    services_total = MonitoredService.query.filter_by(enabled=True).count()
+    services_up = MonitoredService.query.filter_by(enabled=True, last_status='up').count()
     return jsonify({
         'machines_total':  machines_total,
         'machines_online': machines_online,
@@ -92,7 +101,7 @@ def list_services():
 def create_service():
     data = request.get_json(silent=True) or {}
     name = (data.get('name') or '').strip()
-    ip   = (data.get('ip') or '').strip()
+    ip = (data.get('ip') or '').strip()
     if not name or not ip:
         return jsonify({'error': 'name e ip son obligatorios'}), 400
     if len(name) > 80:
@@ -159,14 +168,17 @@ def update_service(svc_id):
 
     if 'name' in data:
         v = (data['name'] or '').strip()
-        if not v: return jsonify({'error': 'name no puede estar vacío'}), 400
-        if len(v) > 80: return jsonify({'error': 'name demasiado largo'}), 400
+        if not v:
+            return jsonify({'error': 'name no puede estar vacío'}), 400
+        if len(v) > 80:
+            return jsonify({'error': 'name demasiado largo'}), 400
         svc.name = v
         svc.icon_key = _icon_key_from_name(v) or None
 
     if 'ip' in data:
         v = (data['ip'] or '').strip()
-        if not _valid_host(v): return jsonify({'error': 'IP/hostname no válido'}), 400
+        if not _valid_host(v):
+            return jsonify({'error': 'IP/hostname no válido'}), 400
         svc.ip = v
 
     if 'port' in data:
@@ -174,12 +186,14 @@ def update_service(svc_id):
             p = int(data['port'])
         except (TypeError, ValueError):
             return jsonify({'error': 'port debe ser un número'}), 400
-        if not (1 <= p <= 65535): return jsonify({'error': 'port fuera de rango'}), 400
+        if not (1 <= p <= 65535):
+            return jsonify({'error': 'port fuera de rango'}), 400
         svc.port = p
 
     if 'protocol' in data:
         proto = (data['protocol'] or 'TCP').upper()
-        if proto not in _VALID_PROTOS: return jsonify({'error': 'protocol no válido'}), 400
+        if proto not in _VALID_PROTOS:
+            return jsonify({'error': 'protocol no válido'}), 400
         svc.protocol = proto
 
     if 'machine_id' in data:
@@ -274,7 +288,7 @@ def _machines_valid_host(v):
 def add_machine():
     data = request.get_json(silent=True) or {}
     name = (data.get('name') or '').strip()
-    ip   = (data.get('ip') or '').strip()
+    ip = (data.get('ip') or '').strip()
     if not name or not ip:
         return jsonify({'error': 'name e ip son obligatorios'}), 400
     if not _machines_valid_host(ip):
@@ -308,22 +322,26 @@ def update_machine(machine_id):
 
     if 'name' in data:
         v = (data['name'] or '').strip()
-        if not v: return jsonify({'error': 'name no puede estar vacío'}), 400
-        if len(v) > 100: return jsonify({'error': 'name demasiado largo'}), 400
+        if not v:
+            return jsonify({'error': 'name no puede estar vacío'}), 400
+        if len(v) > 100:
+            return jsonify({'error': 'name demasiado largo'}), 400
         m.name = v
 
-    new_ip   = m.ip
+    new_ip = m.ip
     new_port = m.port
     if 'ip' in data:
         v = (data['ip'] or '').strip()
-        if not _machines_valid_host(v): return jsonify({'error': 'IP/hostname no válido'}), 400
+        if not _machines_valid_host(v):
+            return jsonify({'error': 'IP/hostname no válido'}), 400
         new_ip = v
     if 'port' in data:
         try:
             p = int(data['port'])
         except (TypeError, ValueError):
             return jsonify({'error': 'port debe ser un número'}), 400
-        if not (1 <= p <= 65535): return jsonify({'error': 'port fuera de rango'}), 400
+        if not (1 <= p <= 65535):
+            return jsonify({'error': 'port fuera de rango'}), 400
         new_port = p
     if (new_ip, new_port) != (m.ip, m.port):
         clash = Machine.query.filter(
@@ -338,7 +356,8 @@ def update_machine(machine_id):
 
     if 'description' in data:
         v = (data.get('description') or '').strip()
-        if len(v) > 200: return jsonify({'error': 'description demasiado larga'}), 400
+        if len(v) > 200:
+            return jsonify({'error': 'description demasiado larga'}), 400
         m.description = v or None
 
     db.session.commit()

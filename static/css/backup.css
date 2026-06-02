@@ -258,11 +258,12 @@
     border-radius: 4px;
     color: white;
 }
-.status-badge.active    { background: #2EA043; }
-.status-badge.scheduled { background: #0A67DC; }
-.status-badge.disabled  { background: #6b7280; }
-.status-badge.error     { background: #d9534f; }
-.status-badge.running   { background: #d97706; }
+.status-badge.active     { background: #2EA043; }
+.status-badge.scheduled  { background: #0A67DC; }
+.status-badge.disabled   { background: #6b7280; }
+.status-badge.error      { background: #d9534f; }
+.status-badge.running    { background: #d97706; }
+.status-badge.cancelled  { background: #6b7280; }
 
 
 /* ===== CONFIG OPTIONS ===== */

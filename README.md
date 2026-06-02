@@ -1,5 +1,7 @@
 # Herramienta de Gestión Remota para Windows
 
+![Tests](https://github.com/j-wafk/Herramienta-de-gestion/actions/workflows/tests.yml/badge.svg)
+
 Sistema de administración y monitorización remota para entornos Windows. Expone una interfaz web completa para supervisar rendimiento, gestionar discos, ejecutar backups y controlar servicios, todo ello con autenticación por roles, cifrado de datos sensibles, base de datos PostgreSQL y despliegue Docker.
 
 ## Arquitectura
@@ -29,18 +31,19 @@ El servidor PowerShell se ejecuta con privilegios de Administrador y acepta coma
 
 ### Gestión de Discos y Particiones
 - Inventario de discos físicos (modelo, interfaz, temperatura, horas)
-- Crear, formatear (NTFS / FAT32 / exFAT), eliminar y montar particiones
-- Clonación, conversión MBR↔GPT, montaje de imágenes ISO/VHD
+- Crear, formatear (NTFS / FAT32 / exFAT / ReFS), eliminar y redimensionar particiones
+- Letras de unidad válidas: D–Z (A, B y C están reservadas)
 
 ### Copias de Seguridad
 - Tipos: Completo, Incremental, Diferencial
 - Compresión ZIP (4 niveles), restauración, verificación de integridad
-- Trabajos de backup configurables con destinos locales, de red o FTP
+- El flag `encrypt` del trabajo está reservado para versiones futuras (sin efecto en v1.0); `notify` está implementado y activo
+- Trabajos de backup configurables con destinos locales (tipo `network`, `cloud` y `ftp` reservados para versiones futuras)
 - Programación mediante Windows Task Scheduler (diario / semanal / mensual)
 - Historial de ejecuciones con progreso en tiempo real y preservación tras eliminación del trabajo
 
 ### Monitorización de Servicios
-- Poller en background para endpoints TCP y UDP con icono por tipo de servicio (WinRM, IIS, SQL, RDP, DNS, API…)
+- Poller en background para endpoints TCP, UDP y HTTPS con icono por tipo de servicio (WinRM, IIS, SQL, RDP, DNS, API…)
 - Registro histórico de cambios de estado con timestamps y latencia
 - Notificaciones por email cuando un servicio cae o se recupera
 
@@ -56,10 +59,12 @@ El servidor PowerShell se ejecuta con privilegios de Administrador y acepta coma
 
 ### Red
 - Interfaces de red, configuración TCP/IP y DNS
+- Herramientas de diagnóstico: ping, traceroute, ipconfig, netstat, release/renew, flush DNS
 
 ### Autenticación y Control de Acceso
 - Login con rate limiting (5 req/min, 20 req/hora)
 - Bloqueo automático de cuenta tras 5 intentos fallidos (15 minutos)
+- Bloqueo adicional de 10 minutos cuando se dispara el rate-limit (no sorteable cambiando de IP)
 - Protección contra enumeración de usuarios mediante verificación en tiempo constante
 - Sesión permanente de 8 horas con cierre automático por inactividad (30 min)
 - Cuatro roles: `superadmin`, `admin`, `operador`, `solo_lectura`
@@ -69,7 +74,7 @@ El servidor PowerShell se ejecuta con privilegios de Administrador y acepta coma
 ### Notificaciones por Email
 - Cola persistente en base de datos con reintentos y backoff exponencial
 - Plantillas HTML para: bienvenida, cambio de contraseña, backup completado/fallido, máquina offline, servicio caído, prueba
-- Preferencias por usuario: machine_offline, service_down, backup_failed, backup_completed, resumen_diario
+- Preferencias por usuario: machine_offline, service_down, backup_failed, backup_completed, daily_summary
 - Compatible con Gmail/Outlook (STARTTLS), SMTPS y MailHog en desarrollo
 
 ### Cifrado en Reposo
@@ -83,7 +88,7 @@ El servidor PowerShell se ejecuta con privilegios de Administrador y acepta coma
 - Modal de preferencias de usuario accesible desde la cabecera
 
 ### Exportación
-- Reportes en PDF y Excel con rangos de fecha configurables
+- Reportes en PDF y Excel de hardware, rendimiento, particiones y red
 
 ## Tecnologías
 
@@ -151,9 +156,11 @@ Herramienta-de-gestion/
 │
 ├── tests/
 │   ├── conftest.py                # Fixtures globales
-│   ├── unit/                      # 10 archivos (parsers, caché, modelos, cifrado,
-│   │                              #   mailer, probe, validators, backup services)
-│   └── integration/               # 13 archivos (un archivo por blueprint/módulo)
+│   ├── unit/                      # 13 archivos (parsers, caché, modelos, cifrado,
+│   │                              #   mailer, probe, validators, backup services,
+│   │                              #   powershell client, notifications dispatch,
+│   │                              #   mailer worker)
+│   └── integration/               # 13 archivos (uno por blueprint/módulo)
 │
 ├── migrations/                    # Migraciones Alembic
 ├── nginx/                         # Configuración nginx + Dockerfile
@@ -161,7 +168,7 @@ Herramienta-de-gestion/
 ├── docs/                          # Documentación y diagramas
 │   ├── TESTING.md                 # Guía completa de testing
 │   ├── diagrama_clases.md         # Diagrama de clases del proyecto
-│   └── Herramienta-Gestion.postman_collection.json  # Colección Postman
+│   └── Herramienta-Gestion_postman_apis.json         # Colección Postman
 ├── scripts/                       # Scripts auxiliares
 │   ├── run_tests.bat              # Tests en Windows
 │   └── run_tests.sh               # Tests en Linux/Mac
@@ -225,27 +232,36 @@ Acceder en `http://localhost:5000`
 | `SECRET_KEY` | Clave de sesión Flask | **Sí** |
 | `ADMIN_PASSWORD` | Contraseña del superadmin inicial (mín. 12 caracteres) | **Sí** |
 | `FIELD_ENCRYPTION_KEY` | Clave Fernet para cifrado de columnas sensibles. **No cambiar en producción.** | **Sí** |
-| `DATABASE_URL` | Cadena de conexión PostgreSQL | No (default: local) |
-| `POWERSHELL_SERVER` | IP del servidor PowerShell | No (default: 127.0.0.1) |
-| `POWERSHELL_PORT` | Puerto TCP del servidor PowerShell | No (default: 12345) |
-| `SOCKET_TIMEOUT` | Timeout de conexión en segundos | No (default: 3) |
-| `CACHE_TIME` | TTL de caché en segundos | No (default: 3) |
-| `FLASK_DEBUG` | Modo debug | No (default: False) |
-| `CORS_ALLOWED_ORIGINS` | Orígenes CORS permitidos (coma-separados) | No (default: http://localhost:5000) |
-| `ADMIN_USER` | Nombre de usuario del superadmin inicial | No (default: admin) |
-| `METRICS_RETENTION_DAYS` | Retención de métricas históricas en días | No (default: 30) |
-| `PS_TLS_ENABLED` | Habilitar TLS para conexión PowerShell | No (default: false) |
+| `DATABASE_URL` | Cadena de conexión PostgreSQL completa (Railway, Heroku, Docker) | No (si se omite se construye desde los componentes DB_*) |
+| `DB_USER` | Usuario PostgreSQL | No (default: `gestion`) |
+| `DB_PASSWORD` | Contraseña PostgreSQL | **Sí** (obligatoria si no hay `DATABASE_URL`) |
+| `DB_HOST` | Host PostgreSQL | No (default: `localhost`) |
+| `DB_PORT` | Puerto PostgreSQL | No (default: `5432`) |
+| `DB_NAME` | Nombre de la base de datos | No (default: `gestion_db`) |
+| `POWERSHELL_SERVER` | IP del servidor PowerShell | No (default: `127.0.0.1`) |
+| `POWERSHELL_PORT` | Puerto TCP del servidor PowerShell | No (default: `12345`) |
+| `SOCKET_TIMEOUT` | Timeout de conexión en segundos | No (default: `3`; el `.env.example` usa `10` — recomendado para redes lentas) |
+| `CACHE_TIME` | TTL de caché en segundos | No (default: `3`) |
+| `BACKUP_PATH` | Ruta por defecto para los backups en el servidor PowerShell | No (default: `C:\Backups`) |
+| `PARTITION_OPS` | Habilitar operaciones de escritura en particiones (`True`/`False`) | No (default: `True`) |
+| `FLASK_ENV` | Entorno Flask; `production` activa HTTPS forzado (Talisman) | No |
+| `FLASK_DEBUG` | Modo debug de Flask | No (default: `False`) |
+| `FLASK_SKIP_DB_INIT` | Omite migraciones y bootstrap al arrancar (usar durante `flask db migrate`) | No (default: `false`) |
+| `CORS_ALLOWED_ORIGINS` | Orígenes CORS permitidos (coma-separados) | No (default: `http://localhost:5000`) |
+| `ADMIN_USER` | Nombre de usuario del superadmin inicial | No (default: `admin`) |
+| `METRICS_RETENTION_DAYS` | Retención de métricas históricas en días | No (default: `30`) |
+| `PS_TLS_ENABLED` | Habilitar TLS para conexión PowerShell | No (default: `false`) |
 | `PS_SERVER_CA_CERT` | Ruta al certificado CA para TLS | No |
-| `MAIL_ENABLED` | Habilitar notificaciones por email | No (default: false) |
-| `SMTP_HOST` | Servidor SMTP | No (default: localhost) |
-| `SMTP_PORT` | Puerto SMTP | No (default: 25) |
+| `MAIL_ENABLED` | Habilitar notificaciones por email | No (default: `false`) |
+| `SMTP_HOST` | Servidor SMTP | No (default: `localhost`; en Docker usa `mailhog`) |
+| `SMTP_PORT` | Puerto SMTP | No (default: `25`; en Docker con MailHog usa `1025`) |
 | `SMTP_USER` | Usuario SMTP | No |
 | `SMTP_PASSWORD` | Contraseña SMTP | No |
-| `SMTP_USE_TLS` | STARTTLS (puerto 587) | No (default: false) |
-| `SMTP_USE_SSL` | SMTPS (puerto 465) | No (default: false) |
-| `SMTP_TIMEOUT` | Timeout SMTP en segundos | No (default: 10) |
-| `MAIL_FROM` | Dirección remitente | No (default: alertas@gestion.local) |
-| `MAIL_FROM_NAME` | Nombre del remitente | No (default: Control Remoto Windows) |
+| `SMTP_USE_TLS` | STARTTLS (puerto 587) | No (default: `false`) |
+| `SMTP_USE_SSL` | SMTPS (puerto 465) | No (default: `false`) |
+| `SMTP_TIMEOUT` | Timeout SMTP en segundos | No (default: `10`) |
+| `MAIL_FROM` | Dirección remitente | No (default: `alertas@gestion.local`) |
+| `MAIL_FROM_NAME` | Nombre del remitente | No (default: `Control Remoto Windows`) |
 
 Generar claves seguras:
 ```bash
@@ -256,91 +272,153 @@ Ver `.env.example` para la lista completa con valores de ejemplo.
 
 ## API REST
 
+La columna **Rol mínimo** indica el nivel más bajo que puede acceder al endpoint. Orden ascendente: `solo_lectura` → `operador` → `admin` → `superadmin`. **Autenticado** = cualquier usuario con sesión activa. **—** = endpoint público (sin sesión).
+
 ### Sistema y Rendimiento
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/system` | Métricas CPU, memoria y disco (caché local o remoto) |
-| GET | `/api/rendimiento/system` | Ídem vía blueprint modular |
-| GET | `/health` | Estado del servidor Flask |
-| GET | `/health/powershell` | Conectividad con el servidor PowerShell |
-| GET | `/health/background` | Estado del hilo de refresco de métricas |
-| GET | `/procesos?action=listar` | Lista de procesos activos |
+| Método | Ruta | Descripción | Rol mínimo |
+|--------|------|-------------|------------|
+| GET | `/api/system` | Métricas CPU, memoria y disco (caché local o remoto) | Autenticado |
+| GET | `/api/rendimiento/system` | Ídem vía blueprint modular | Autenticado |
+| GET | `/health` | Estado del servidor Flask | — |
+| GET | `/health/powershell` | Conectividad con el servidor PowerShell | Autenticado |
+| GET | `/health/background` | Estado del hilo de refresco de métricas | Autenticado |
+| GET | `/procesos?action=listar` | Lista de procesos activos | Autenticado |
 
 ### Particiones
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/particiones/disks` | Discos físicos |
-| GET | `/api/particiones/partitions` | Particiones |
-| GET | `/api/particiones/disk/<id>/details` | Detalle de disco |
-| POST | `/api/particiones/create` | Crear partición |
-| POST | `/api/particiones/format` | Formatear partición |
-| POST | `/api/particiones/delete` | Eliminar partición |
-| POST | `/api/particiones/clone` | Clonar disco |
-| POST | `/api/particiones/convert` | Convertir MBR/GPT |
+| Método | Ruta | Descripción | Rol mínimo |
+|--------|------|-------------|------------|
+| GET | `/api/particiones/disks` | Discos físicos (uso enriquecido con datos de particiones) | Autenticado |
+| GET | `/api/particiones/partitions` | Particiones; `?disk_id=disk0` filtra por disco | Autenticado |
+| GET | `/api/particiones/disk_detail?disk_id=<id>` | Detalle de disco físico | Autenticado |
+| POST | `/api/particiones/partition_operation` | Operaciones de escritura — campo `operation` ∈ {`create`, `format`, `delete`, `resize`} | admin+ |
 
-### Backup
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/backup/destinations` | Destinos de backup |
-| POST | `/api/backup/destinations` | Crear destino |
-| GET | `/api/backup/jobs` | Listar trabajos configurados |
-| POST | `/api/backup/jobs` | Crear trabajo de backup |
-| POST | `/api/backup/jobs/<id>/run` | Ejecutar trabajo ahora |
-| DELETE | `/api/backup/jobs/<id>` | Eliminar trabajo |
-| GET | `/api/backup/runs` | Historial de ejecuciones |
-| POST | `/api/backup/create` | Crear backup ad-hoc |
-| POST | `/api/backup/restore` | Restaurar backup |
-| POST | `/api/backup/verify` | Verificar integridad |
-| POST | `/api/backup/compress` | Comprimir archivos |
-| POST | `/api/backup/decompress` | Descomprimir archivos |
-| POST | `/api/backup/schedule` | Programar backup en Task Scheduler |
-| GET | `/api/backup/status` | Estado de operaciones en curso |
+### Backup — Destinos
+| Método | Ruta | Descripción | Rol mínimo |
+|--------|------|-------------|------------|
+| GET | `/api/backup/destinations` | Listar destinos de backup | operador+ |
+| POST | `/api/backup/destinations` | Crear destino | admin+ |
+| PUT | `/api/backup/destinations/<id>` | Editar destino | admin+ |
+| DELETE | `/api/backup/destinations/<id>` | Eliminar destino (falla si tiene trabajos asociados) | admin+ |
+| POST | `/api/backup/destinations/<id>/test` | Verificar accesibilidad del destino | operador+ |
+
+### Backup — Trabajos
+| Método | Ruta | Descripción | Rol mínimo |
+|--------|------|-------------|------------|
+| GET | `/api/backup/jobs` | Listar trabajos configurados (sincroniza Task Scheduler) | operador+ |
+| POST | `/api/backup/jobs` | Crear trabajo de backup | admin+ |
+| PUT | `/api/backup/jobs/<id>` | Editar trabajo | admin+ |
+| DELETE | `/api/backup/jobs/<id>` | Eliminar trabajo (historial se conserva huérfano) | admin+ |
+| POST | `/api/backup/jobs/<id>/toggle` | Activar / desactivar trabajo | admin+ |
+| POST | `/api/backup/jobs/<id>/run` | Ejecutar trabajo ahora (devuelve 202 + run) | operador+ |
+| POST | `/api/backup/jobs/<id>/run_scheduled` | Forzar la tarea de Windows Task Scheduler asociada | admin+ |
+| GET | `/api/backup/jobs/<id>/scheduled_log` | Log de la tarea programada en Windows | operador+ |
+
+### Backup — Historial y Operaciones
+| Método | Ruta | Descripción | Rol mínimo |
+|--------|------|-------------|------------|
+| GET | `/api/backup/history` | Historial paginado; `?limit=&offset=&q=` | operador+ |
+| GET | `/api/backup/history/<id>` | Detalle de ejecución | operador+ |
+| POST | `/api/backup/history/<id>/restore` | Restaurar backup completado a una ruta | admin+ |
+| DELETE | `/api/backup/history/<id>` | Eliminar registro (`?delete_disk=1` borra también el archivo) | admin+ |
+| POST | `/api/backup/history/<id>/verify` | Verificar integridad del archivo de backup | operador+ |
+| GET | `/api/backup/runs/<id>` | Detalle de run (alias alternativo) | operador+ |
+| GET | `/api/backup/summary` | Resumen por máquina (total jobs, último backup, espacio usado) | operador+ |
+| GET | `/api/backup/scheduled` | Tareas en Windows Task Scheduler | operador+ |
+| POST | `/api/backup/compress` | Comprimir archivos | admin+ |
+| POST | `/api/backup/decompress` | Descomprimir archivos | admin+ |
+| GET | `/api/backup/list?path=<ruta>` | Lista cruda de backups en el filesystem (legacy) | operador+ |
+| GET | `/api/backup/status` | Estado de operaciones en curso | operador+ |
 
 ### Monitorización de Servicios
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/monitorizacion/services` | Listar servicios monitorizados |
-| POST | `/api/monitorizacion/services` | Añadir servicio |
-| PUT | `/api/monitorizacion/services/<id>` | Editar servicio |
-| DELETE | `/api/monitorizacion/services/<id>` | Eliminar servicio |
-| POST | `/api/monitorizacion/services/<id>/check` | Sondear servicio ahora |
-| GET | `/api/monitorizacion/activity` | Actividad reciente (cambios de estado) |
-| GET | `/api/monitorizacion/machines` | Máquinas gestionadas |
-| POST | `/api/monitorizacion/machines` | Añadir máquina |
-| PUT | `/api/monitorizacion/machines/<id>` | Editar máquina |
-| DELETE | `/api/monitorizacion/machines/<id>` | Eliminar máquina |
+| Método | Ruta | Descripción | Rol mínimo |
+|--------|------|-------------|------------|
+| GET | `/api/monitorizacion/services` | Listar servicios monitorizados | Autenticado |
+| POST | `/api/monitorizacion/services` | Añadir servicio | admin+ |
+| PUT | `/api/monitorizacion/services/<id>` | Editar servicio | admin+ |
+| DELETE | `/api/monitorizacion/services/<id>` | Eliminar servicio | admin+ |
+| POST | `/api/monitorizacion/services/<id>/check` | Sondear servicio ahora | operador+ |
+| GET | `/api/monitorizacion/activity` | Actividad reciente (cambios de estado) | Autenticado |
+| GET | `/api/monitorizacion/summary` | Resumen de máquinas y servicios | Autenticado |
+| GET | `/api/machines` | Listar máquinas gestionadas (ver sección Gestión Multi-Máquina) | Autenticado |
+| POST | `/api/monitorizacion/machines` | Añadir máquina | operador+ |
+| PUT | `/api/monitorizacion/machines/<id>` | Editar máquina | operador+ |
+| DELETE | `/api/monitorizacion/machines/<id>` | Eliminar máquina | operador+ |
+
+### Hardware
+| Método | Ruta | Descripción | Rol mínimo |
+|--------|------|-------------|------------|
+| GET | `/api/hardware/snapshot` | Último snapshot guardado en BD (sin llamada PowerShell) | Autenticado |
+| POST | `/api/hardware/refresh` | Refresco en vivo y guardado en BD | operador+ |
+| GET | `/api/hardware/memory/live` | RAM en vivo (sondeo ligero, sin BD) | Autenticado |
+| GET | `/api/hardware/system` | Información del sistema | Autenticado |
+| GET | `/api/hardware/cpu` | CPU (modelo, núcleos, hilos, sockets) | Autenticado |
+| GET | `/api/hardware/memory` | Memoria (total, usado, libre, velocidad, slots) | Autenticado |
+| GET | `/api/hardware/disks` | Discos (modelo, tipo, temperatura, capacidad) | Autenticado |
+| GET | `/api/hardware/gpu` | GPU(s) | Autenticado |
+| GET | `/api/hardware/motherboard` | Placa base | Autenticado |
+| GET | `/api/hardware/devices` | Dispositivos conectados | Autenticado |
+| GET | `/api/hardware/export` | Descarga JSON del inventario completo | Autenticado |
+
+### Red
+| Método | Ruta | Descripción | Rol mínimo |
+|--------|------|-------------|------------|
+| GET | `/api/red/adapters` | Adaptadores de red | Autenticado |
+| GET | `/api/red/adapter_details?adapter=<nombre>` | Detalles TCP/IP de un adaptador | Autenticado |
+| GET | `/api/red/stats` | Estadísticas de tráfico (RX/TX) | Autenticado |
+| GET | `/api/red/activity` | Eventos recientes de red | Autenticado |
+| GET | `/api/red/alerts` | Alertas de red | Autenticado |
+| POST | `/api/red/tool` | Diagnóstico — `tool` ∈ {`ping`, `traceroute`, `ipconfig`, `netstat`} (operador+); {`release_renew`, `flush_dns`} (admin+) | operador+ |
+
+### Exportación
+| Método | Ruta | Descripción | Rol mínimo |
+|--------|------|-------------|------------|
+| GET | `/api/export/hardware?format=xlsx\|pdf` | Inventario de hardware (multi-máquina con `?machine_id=1&machine_id=2`) | Autenticado |
+| GET | `/api/export/rendimiento?format=xlsx\|pdf&days=<n>` | Historial de métricas (máx. 30 días) | Autenticado |
+| GET | `/api/export/particiones?format=xlsx\|pdf` | Discos físicos y particiones | Autenticado |
+| GET | `/api/export/red?format=xlsx\|pdf` | Adaptadores y estadísticas de red | Autenticado |
 
 ### Autenticación y Usuarios
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET/POST | `/auth/login` | Login |
-| GET | `/auth/logout` | Logout |
-| GET | `/auth/usuarios` | Página de gestión de usuarios |
-| POST | `/auth/api/users` | Crear usuario |
-| PUT | `/auth/api/users/<id>` | Editar usuario |
-| DELETE | `/auth/api/users/<id>` | Eliminar usuario |
-| GET | `/auth/api/profile` | Obtener perfil del usuario actual |
-| PUT | `/auth/api/profile` | Actualizar perfil |
-| POST | `/auth/api/profile/avatar` | Subir avatar |
-| GET | `/auth/api/registros` | Log de auditoría |
-| GET | `/auth/api/notification-preferences` | Preferencias de notificación |
-| PUT | `/auth/api/notification-preferences` | Actualizar preferencias |
+| Método | Ruta | Descripción | Rol mínimo |
+|--------|------|-------------|------------|
+| GET/POST | `/auth/login` | Login (POST: 5/min, 20/h; superar el límite bloquea la cuenta 10 min) | — |
+| GET | `/auth/logout` | Logout | Autenticado |
+| GET | `/auth/usuarios` | Página de gestión de usuarios | admin+ |
+| GET | `/auth/registros` | Página de audit log | admin+ |
+| GET | `/auth/api/usuarios` | Listar usuarios | admin+ |
+| POST | `/auth/api/usuarios` | Crear usuario (envía email de bienvenida) | superadmin |
+| PUT | `/auth/api/usuarios/<id>` | Editar usuario (admin no puede modificar superadmins ni cambiar roles) | admin+ |
+| DELETE | `/auth/api/usuarios/<id>` | Eliminar usuario | superadmin |
+| POST | `/auth/api/usuarios/<id>/unlock` | Desbloquear cuenta manualmente | admin+ |
+| GET | `/auth/api/registros` | Audit log JSON con filtros y paginación | admin+ |
+| GET | `/auth/api/registros/export?format=csv\|xlsx\|pdf` | Exportar registros de auditoría | admin+ |
+| GET | `/auth/api/profile` | Perfil del usuario autenticado | Autenticado |
+| POST | `/auth/api/profile/update` | Actualizar perfil (email, nombre, idioma, tema, avatar) | Autenticado |
+| GET | `/auth/api/profile/notifications` | Preferencias de notificación | Autenticado |
+| POST | `/auth/api/profile/notifications` | Actualizar preferencias de notificación | Autenticado |
+| POST | `/auth/api/profile/password` | Cambiar contraseña (encola email de aviso) | Autenticado |
 
 ### Notificaciones
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/notifications/config` | Configuración SMTP actual (superadmin) |
-| POST | `/api/notifications/test` | Enviar email de prueba (superadmin) |
+| Método | Ruta | Descripción | Rol mínimo |
+|--------|------|-------------|------------|
+| GET | `/api/notifications/config` | Configuración SMTP actual | superadmin |
+| POST | `/api/notifications/test` | Enviar email de prueba | superadmin |
+
+### Gestión Multi-Máquina
+| Método | Ruta | Descripción | Rol mínimo |
+|--------|------|-------------|------------|
+| GET | `/api/machines` | Listar máquinas registradas | Autenticado |
+| POST | `/api/machines` | Registrar nueva máquina | operador+ |
+| PUT | `/api/machines/<id>` | Editar máquina | operador+ |
+| DELETE | `/api/machines/<id>` | Eliminar máquina | operador+ |
+| POST | `/api/machines/<id>/ping` | Comprobar conectividad TCP y actualizar estado | operador+ |
+| POST | `/api/machines/ping_all` | Sondear todas las máquinas en paralelo | operador+ |
+| GET | `/api/machines/<id>/metrics` | Historial de métricas de la máquina (`?hours=1`, máx. 168) | Autenticado |
+| GET | `/api/machines/<id>/services` | Servicios Windows conocidos de la máquina | Autenticado |
 
 ### Otros
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| POST | `/api/command` | Ejecutar comando PowerShell (lista blanca) |
-| GET | `/api/machines` | Listar máquinas registradas |
-| GET | `/api/hardware` | Información de hardware |
-| GET | `/api/red` | Configuración de red |
-| GET | `/api/export/pdf` | Exportar reporte PDF |
-| GET | `/api/export/excel` | Exportar reporte Excel |
+| Método | Ruta | Descripción | Rol mínimo |
+|--------|------|-------------|------------|
+| POST | `/api/command` | Ejecutar comando PowerShell (lista blanca) | Autenticado |
 
 ## Testing
 
@@ -359,14 +437,15 @@ scripts\run_tests.bat      # Windows
 ./scripts/run_tests.sh     # Linux/Mac
 ```
 
-El proyecto cuenta con **10 archivos de tests unitarios** (parsers, caché, cifrado, mailer, modelos, probe, validators, backup services) y **13 archivos de tests de integración** (uno por blueprint/módulo). Ver [docs/TESTING.md](docs/TESTING.md) para la guía completa.
+El proyecto cuenta con **13 archivos de tests unitarios** (parsers de backup, particiones y rendimiento; caché; cifrado; mailer; mailer worker; probe; validators; modelos; powershell client; notifications dispatch; backup services) y **13 archivos de tests de integración** (uno por blueprint/módulo: auth, particiones, backup, backup history, hardware, red, rendimiento, machines, monitorizacion, export, notifications, audit/machine, api endpoints). La cobertura se mide con branch coverage (`branch = True`); el umbral configurado es ≥ 75 % (`fail_under = 75` en `pytest.ini`), sobre los módulos `modules/`, `utils/`, `main.py` y `config.py`. Ver [docs/TESTING.md](docs/TESTING.md) para la guía completa.
 
 ## Seguridad
 
 - **HTTPS** obligatorio en producción (nginx con TLS 1.2+)
-- **CSRF** en todos los formularios (Flask-WTF + inyección via `csrf.js`)
+- **CSRF** en formularios HTML (Flask-WTF + inyección via `csrf.js`); los blueprints de API JSON (`rendimiento`, `particiones`, `backup`, `machines`, `hardware`, `red`, `compat`, `export`, `monitorizacion`, `notifications`) están exentos mediante `csrf.exempt()` — su protección equivalente son SameSite=Lax + CORS restringido + cabecera `X-CSRFToken`; el blueprint `auth` NO está exento (el formulario de login usa verificación WTF estándar)
 - **Rate limiting** en login: 5 req/min, 20 req/hora
-- **Bloqueo de cuenta**: 5 intentos fallidos → bloqueo automático de 15 minutos
+- **Bloqueo por intentos fallidos (15 min)**: tras 5 intentos fallidos consecutivos → `locked_until = ahora + 15 min`; se resetea al hacer login correcto; desbloqueable manualmente vía `POST /auth/api/usuarios/<id>/unlock`
+- **Bloqueo por rate-limit (10 min)**: cuando Flask-Limiter devuelve 429 en `/auth/login`, el manejador de error escribe `locked_until = ahora + 10 min` en la cuenta (si el username está en el formulario); impide sortear el bloqueo cambiando de IP; registrado como `login_blocked_ratelimit` en el audit log
 - **Tiempo constante en login**: hash dummy para evitar enumeración de usuarios por latencia
 - **Cifrado en reposo**: campos PII (email, nombre) y cuerpos de email cifrados con Fernet (AES-128-CBC + HMAC-SHA256). Clave gestionada por `FIELD_ENCRYPTION_KEY`
 - **Sesión**: duración máxima de 8 horas; cierre automático por inactividad (30 min)
@@ -386,7 +465,7 @@ Para entornos de producción:
 
 ## Postman
 
-El archivo `docs/Herramienta-Gestion.postman_collection.json` incluye todos los endpoints documentados listos para importar en Postman.
+El archivo `docs/Herramienta-Gestion_postman_apis.json` incluye todos los endpoints documentados listos para importar en Postman.
 
 ## Licencia
 

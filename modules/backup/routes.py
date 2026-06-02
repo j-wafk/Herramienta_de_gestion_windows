@@ -198,7 +198,7 @@ def _validate_job_payload(data, partial=False):
         )
     if 'schedule_time' in data or not partial:
         out['schedule_time'] = validate_schedule_time(data.get('schedule_time', '02:00'))
-    for boolean_key in ('compress', 'verify_after', 'encrypt', 'notify', 'enabled'):
+    for boolean_key in ('compress', 'verify_after', 'notify', 'enabled'):
         if boolean_key in data:
             out[boolean_key] = bool(data[boolean_key])
     return out
@@ -233,7 +233,6 @@ def create_job():
         schedule_time=norm['schedule_time'],
         compress=norm.get('compress', True),
         verify_after=norm.get('verify_after', True),
-        encrypt=norm.get('encrypt', False),
         notify=norm.get('notify', False),
         enabled=norm.get('enabled', True),
     )
@@ -548,6 +547,10 @@ def get_summary():
                 .filter_by(machine_id=machine.id)
                 .order_by(BackupRun.started_at.desc())
                 .first())
+    last_successful_run = (BackupRun.query
+                           .filter_by(machine_id=machine.id, status='completed')
+                           .order_by(BackupRun.started_at.desc())
+                           .first())
     has_errors = (BackupRun.query
                   .filter_by(machine_id=machine.id, status='error')
                   .count()) > 0
@@ -556,18 +559,19 @@ def get_summary():
                    .filter(BackupRun.machine_id == machine.id,
                            BackupRun.status == 'completed')
                    .scalar()) or 0
-    last_dt = last_run.started_at if last_run else None
+    last_dt = last_successful_run.started_at if last_successful_run else None
     days_since = None
     if last_dt:
         delta = datetime.utcnow() - last_dt
         days_since = max(0, delta.days)
     return jsonify({
-        "machine_id":    machine.id,
-        "total_jobs":    total_jobs,
-        "last_backup":   last_dt.isoformat() if last_dt else None,
-        "days_since":    days_since,
-        "space_used_gb": round(space_bytes / (1024 ** 3), 2),
-        "status":        "warning" if has_errors else "ok",
+        "machine_id":        machine.id,
+        "total_jobs":        total_jobs,
+        "last_backup":       last_dt.isoformat() + 'Z' if last_dt else None,
+        "last_backup_status": last_run.status if last_run else None,
+        "days_since":        days_since,
+        "space_used_gb":     round(space_bytes / (1024 ** 3), 2),
+        "status":            "warning" if has_errors else "ok",
     })
 
 
