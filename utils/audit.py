@@ -96,14 +96,14 @@ def log_action(action: str, resource: str, detail: str = '', machine_id=None):
         if has_request_context():
             if current_user.is_authenticated:
                 user = current_user.username
-                uid  = current_user.id
+                uid = current_user.id
             else:
                 user = 'anonymous'
-                uid  = None
+                uid = None
             ip = request.remote_addr or '-'
         else:
             user = 'system'
-            uid  = None
+            uid = None
             ip = '-'
         if machine_id is not None:
             machine = _machine_label_from_id(machine_id) or 'local'
@@ -111,11 +111,11 @@ def log_action(action: str, resource: str, detail: str = '', machine_id=None):
             machine = _resolve_machine_label()
     except RuntimeError:
         user = 'system'
-        uid  = None
+        uid = None
         ip = '-'
         machine = _machine_label_from_id(machine_id) or 'local' if machine_id is not None else 'local'
 
-    uid_part    = f' uid={uid}' if uid is not None else ''
+    uid_part = f' uid={uid}' if uid is not None else ''
     detail_part = f' detail="{detail}"' if detail else ''
     _audit.info(
         f'user={user}{uid_part} ip={ip} machine={machine} '

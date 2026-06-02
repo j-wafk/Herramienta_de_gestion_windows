@@ -1,4 +1,4 @@
-﻿# modules/hardware/routes.py
+# modules/hardware/routes.py
 import json
 from datetime import datetime
 from flask import Blueprint, jsonify, request, Response

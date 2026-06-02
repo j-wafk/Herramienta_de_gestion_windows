@@ -1,4 +1,4 @@
-﻿# utils/cache_manager.py
+# utils/cache_manager.py
 import time
 import threading
 from config import Config

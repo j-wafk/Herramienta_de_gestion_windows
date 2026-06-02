@@ -1,4 +1,4 @@
-﻿# modules/backup/services.py
+# modules/backup/services.py
 """
 Servicios de orquestaciÃ³n de backups: ejecuciÃ³n asÃ­ncrona con progreso real
 por polling y sincronizaciÃ³n de tareas programadas con Task Scheduler.

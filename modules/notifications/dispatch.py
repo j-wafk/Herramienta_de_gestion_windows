@@ -66,6 +66,7 @@ _BACKUP_TYPE_LABELS = {
     'differential': 'Diferencial',
 }
 
+
 def _backup_type_label(raw):
     """Traduce el valor interno del tipo de backup a una etiqueta en español."""
     return _BACKUP_TYPE_LABELS.get((raw or '').lower(), 'Completa')
