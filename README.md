@@ -1,6 +1,6 @@
 # Herramienta de Gestión Remota para Windows
 
-![Tests](https://github.com/j-wafk/Herramienta-de-gestion/actions/workflows/tests.yml/badge.svg)
+![Tests](https://github.com/j-wafk/Herramienta_de_gestion_windows/actions/workflows/tests.yml/badge.svg)
 
 Sistema de administración y monitorización remota para entornos Windows. Expone una interfaz web completa para supervisar rendimiento, gestionar discos, ejecutar backups y controlar servicios, todo ello con autenticación por roles, cifrado de datos sensibles, base de datos PostgreSQL y despliegue Docker.
 
@@ -414,11 +414,6 @@ La columna **Rol mínimo** indica el nivel más bajo que puede acceder al endpoi
 | POST | `/api/machines/ping_all` | Sondear todas las máquinas en paralelo | operador+ |
 | GET | `/api/machines/<id>/metrics` | Historial de métricas de la máquina (`?hours=1`, máx. 168) | Autenticado |
 | GET | `/api/machines/<id>/services` | Servicios Windows conocidos de la máquina | Autenticado |
-
-### Otros
-| Método | Ruta | Descripción | Rol mínimo |
-|--------|------|-------------|------------|
-| POST | `/api/command` | Ejecutar comando PowerShell (lista blanca) | Autenticado |
 
 ## Testing
 
